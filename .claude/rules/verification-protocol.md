@@ -32,8 +32,8 @@ paths:
 6. **Freshness check:** Before using any TikZ SVG, verify extract_tikz.tex matches current Beamer source
 
 ## For R Scripts:
-1. Run `Rscript scripts/R/filename.R`
-2. Verify output files (PDF, RDS) were created with non-zero size
+1. Run `Rscript code/filename.R`
+2. Verify output files (PDF, fst, qs2) were created with non-zero size
 3. Spot-check estimates for reasonable magnitude
 
 ## Common Pitfalls:

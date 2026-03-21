@@ -35,10 +35,10 @@ TEXINPUTS=../Preambles:$TEXINPUTS xelatex -interaction=nonstopmode FILENAME.tex 
 
 ### For `.R` files (R scripts):
 ```bash
-Rscript scripts/R/FILENAME.R 2>&1 | tail -20
+Rscript code/FILENAME.R 2>&1 | tail -20
 ```
 - Check exit code
-- Verify output files (PDF, RDS) were created
+- Verify output files (PDF, fst, qs2) were created
 - Check file sizes > 0
 
 ### For `.svg` files (TikZ diagrams):

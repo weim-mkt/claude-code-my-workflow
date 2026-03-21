@@ -16,7 +16,7 @@ Run an end-to-end data analysis in R: load, explore, analyze, and produce public
 ## Constraints
 
 - **Follow R code conventions** in `.claude/rules/r-code-conventions.md`
-- **Save all scripts** to `scripts/R/` with descriptive names
+- **Save all scripts** to `code/` with descriptive names
 - **Save all outputs** (figures, tables, cached data) to `output/`
 - **Cache data** with `fst::write_fst()` for tabular, `qs2::qs_save()` for model objects
 - **Use `ggthemes::theme_stata()`** for all figures
@@ -75,7 +75,7 @@ Based on the research question:
 
 ```
 Delegate to the r-reviewer agent:
-"Review the script at scripts/R/[script_name].R"
+"Review the script at code/[script_name].R"
 ```
 
 4. Address any Critical or High issues from the review.
