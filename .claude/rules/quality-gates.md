@@ -34,7 +34,7 @@ paths:
 | Critical | Syntax errors | -100 |
 | Critical | Domain-specific bugs | -30 |
 | Critical | Hardcoded absolute paths | -20 |
-| Major | Missing set.seed() | -10 |
+| Major | Missing set.seed(888) before randomness | -10 |
 | Major | Missing figure generation | -5 |
 
 ## Beamer Slides (.tex)

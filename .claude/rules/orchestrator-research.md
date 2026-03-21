@@ -36,7 +36,7 @@ Plan approved → orchestrator activates
 - [ ] Script runs without errors
 - [ ] All packages loaded at top
 - [ ] No hardcoded absolute paths
-- [ ] `set.seed()` once at top if stochastic
+- [ ] `set.seed(888)` before each randomness step
 - [ ] Output files created at expected paths
 - [ ] Tolerance checks pass (if applicable)
 - [ ] Quality score >= 80

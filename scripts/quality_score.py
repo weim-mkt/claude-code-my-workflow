@@ -56,7 +56,7 @@ R_SCRIPT_RUBRIC = {
     'major': {
         'missing_set_seed': {'points': 10},
         'missing_figure': {'points': 5},
-        'missing_rds': {'points': 5},
+        'missing_cache': {'points': 5},
     },
     'minor': {
         'style_violation': {'points': 1},
@@ -481,7 +481,7 @@ class QualityScorer:
             self.issues['major'].append({
                 'type': 'missing_set_seed',
                 'description': 'Missing set.seed() for reproducibility',
-                'details': 'Add set.seed(YYYYMMDD) after library() calls',
+                'details': 'Add set.seed(888) before each randomness step',
                 'points': 10
             })
             self.score -= 10

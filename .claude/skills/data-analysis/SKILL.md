@@ -17,9 +17,9 @@ Run an end-to-end data analysis in R: load, explore, analyze, and produce public
 
 - **Follow R code conventions** in `.claude/rules/r-code-conventions.md`
 - **Save all scripts** to `scripts/R/` with descriptive names
-- **Save all outputs** (figures, tables, RDS) to `output/`
-- **Use `saveRDS()`** for every computed object — Quarto slides may need them
-- **Use project theme** for all figures (check for custom theme in `.claude/rules/`)
+- **Save all outputs** (figures, tables, cached data) to `output/`
+- **Cache data** with `fst::write_fst()` for tabular, `qs2::qs_save()` for model objects
+- **Use `ggthemes::theme_stata()`** for all figures
 - **Run r-reviewer** on the generated script before presenting results
 
 ---
@@ -30,8 +30,8 @@ Run an end-to-end data analysis in R: load, explore, analyze, and produce public
 
 1. Read `.claude/rules/r-code-conventions.md` for project standards
 2. Create R script with proper header (title, author, purpose, inputs, outputs)
-3. Load required packages at top (`library()`, never `require()`)
-4. Set seed once at top: `set.seed(42)`
+3. Load required packages at top via `library()` (`renv` + `pak` for install)
+4. Call `set.seed(888)` before each step involving randomness
 5. Load and inspect the dataset
 
 ### Phase 2: Exploratory Data Analysis
@@ -61,7 +61,7 @@ Based on the research question:
 - Export as `.tex` for LaTeX inclusion and `.html` for quick viewing
 
 **Figures:**
-- Use `ggplot2` with project theme
+- Use `ggplot2` with `ggthemes::theme_stata()`
 - Set `bg = "transparent"` for Beamer compatibility
 - Include proper axis labels (sentence case, units)
 - Export with explicit dimensions: `ggsave(width = X, height = Y)`
@@ -69,7 +69,7 @@ Based on the research question:
 
 ### Phase 5: Save and Review
 
-1. `saveRDS()` for all key objects (regression results, summary tables, processed data)
+1. `fst::write_fst()` for tabular data, `qs2::qs_save()` for model objects
 2. Create `output/` subdirectories as needed with `dir.create(..., recursive = TRUE)`
 3. Run the r-reviewer agent on the generated script:
 
@@ -92,32 +92,38 @@ Follow this template:
 # Author: [from project context]
 # Purpose: [What this script does]
 # Inputs: [Data files]
-# Outputs: [Figures, tables, RDS files]
+# Outputs: [Figures, tables, cached data]
 # ============================================================
 
 # 0. Setup ----
-library(tidyverse)
+library(data.table)
 library(fixest)
 library(modelsummary)
+library(ggplot2)
+library(ggthemes)
+library(here)
+library(fst)
+library(qs2)
 
-set.seed(42)
-
-dir.create("output/analysis", recursive = TRUE, showWarnings = FALSE)
+dir.create(here("output", "analysis"), recursive = TRUE, showWarnings = FALSE)
 
 # 1. Data Loading ----
-# [Load and clean data]
+# dt <- fread(here("data", "raw", "dataset.csv"), encoding = "UTF-8")
 
 # 2. Exploratory Analysis ----
 # [Summary stats, diagnostic plots]
 
 # 3. Main Analysis ----
-# [Regressions, estimation]
+set.seed(888)
+# [Regressions, estimation — seed before any randomness step]
 
 # 4. Tables and Figures ----
-# [Publication-ready output]
+# [Publication-ready output with theme_stata()]
 
 # 5. Export ----
-# [saveRDS for all objects, ggsave for all figures]
+# fst::write_fst(dt_results, here("output", "analysis", "results.fst"))
+# qs2::qs_save(model_fit, here("output", "analysis", "model.qs2"))
+# ggsave(here("output", "analysis", "figure.pdf"), width = 12, height = 5, bg = "transparent")
 ```
 
 ---
@@ -128,4 +134,5 @@ dir.create("output/analysis", recursive = TRUE, showWarnings = FALSE)
 - **Show your work.** Print summary statistics before jumping to regression.
 - **Check for issues.** Look for multicollinearity, outliers, perfect prediction.
 - **Use relative paths.** All paths relative to repository root.
+- **Use `here::here()`.** All paths via `here()` for cross-platform compatibility.
 - **No hardcoded values.** Use variables for sample restrictions, date ranges, etc.

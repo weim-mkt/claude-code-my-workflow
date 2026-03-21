@@ -38,14 +38,16 @@ Produce a thorough, actionable code review report. You do NOT edit files — you
 **Flag:** ANY use of `cat()` or `print()` for non-debugging purposes.
 
 ### 3. REPRODUCIBILITY
-- [ ] `set.seed()` called ONCE at the top of the script (never inside loops/functions)
+- [ ] `set.seed(888)` called before every step involving randomness (not once at top)
+- [ ] `renv` used for project isolation with `pak` as install backend
 - [ ] All packages loaded at top via `library()` (not `require()`)
-- [ ] All paths relative to repository root
+- [ ] All paths via `here::here()` for cross-platform compatibility
 - [ ] Output directory created with `dir.create(..., recursive = TRUE)`
 - [ ] No hardcoded absolute paths
+- [ ] All file I/O uses UTF-8 encoding explicitly
 - [ ] Script runs cleanly from `Rscript` on a fresh clone
 
-**Flag:** Multiple `set.seed()` calls, `require()` usage, absolute paths, missing `dir.create()`.
+**Flag:** Missing `set.seed()` before randomness steps, `require()` usage, absolute paths, missing `here::here()`, missing `dir.create()`.
 
 ### 4. FUNCTION DESIGN & DOCUMENTATION
 - [ ] All functions use `snake_case` naming
@@ -53,7 +55,7 @@ Produce a thorough, actionable code review report. You do NOT edit files — you
 - [ ] Every non-trivial function has roxygen-style documentation
 - [ ] Default parameters for all tuning values
 - [ ] No magic numbers inside function bodies
-- [ ] Return values are named lists or tibbles (not unnamed vectors)
+- [ ] Return values are named lists or data.tables (not unnamed vectors)
 
 **Flag:** Undocumented functions, magic numbers, unnamed return values, code duplication.
 
@@ -68,25 +70,25 @@ Produce a thorough, actionable code review report. You do NOT edit files — you
 **Flag:** Implementation doesn't match theory, wrong estimand, known bugs.
 
 ### 6. FIGURE QUALITY
-- [ ] Consistent color palette (check your project's standard colors)
-- [ ] Custom theme applied to all plots
+- [ ] `ggthemes::theme_stata()` applied to all plots
 - [ ] Transparent background for Beamer figures: `bg = "transparent"`
 - [ ] Explicit dimensions in `ggsave()`: `width`, `height` specified
 - [ ] Axis labels: sentence case, no abbreviations, units included
 - [ ] Legend position: bottom, readable at projection size
 - [ ] Font sizes readable when projected (base_size >= 14)
-- [ ] No default ggplot2 colors leaking through
+- [ ] No default ggplot2 theme or colors leaking through
 
-**Flag:** Missing transparent bg, default colors, hard-to-read fonts, missing dimensions.
+**Flag:** Missing transparent bg, missing `theme_stata()`, hard-to-read fonts, missing dimensions.
 
-### 7. RDS DATA PATTERN
-- [ ] Every computed object has a corresponding `saveRDS()` call
-- [ ] RDS filenames are descriptive
+### 7. DATA CACHING
+- [ ] Tabular data (data.table/data.frame) cached with `fst::write_fst()`
+- [ ] Model objects and other R objects cached with `qs2::qs_save()`
+- [ ] Cache filenames are descriptive
 - [ ] Both raw results AND summary tables saved
-- [ ] File paths use `file.path()` for cross-platform compatibility
-- [ ] Missing `saveRDS()` means Quarto slides can't render — flag as HIGH severity
+- [ ] File paths use `here::here()` for cross-platform compatibility
+- [ ] Missing cache means Quarto slides can't render — flag as HIGH severity
 
-**Flag:** Missing `saveRDS()` for any object referenced by slides.
+**Flag:** Missing `fst::write_fst()` / `qs2::qs_save()` for any object referenced by slides.
 
 ### 8. COMMENT QUALITY
 - [ ] Comments explain **WHY**, not WHAT
@@ -108,10 +110,10 @@ Produce a thorough, actionable code review report. You do NOT edit files — you
 - [ ] Consistent indentation (2 spaces, no tabs)
 - [ ] Lines under 100 characters where possible
 - [ ] Consistent spacing around operators
-- [ ] Pipe style consistent: either `%>%` or `|>`, not mixed
+- [ ] Base pipe `|>` used exclusively (not magrittr `%>%`)
 - [ ] No legacy R patterns (`T`/`F` instead of `TRUE`/`FALSE`)
 
-**Flag:** Inconsistent style, legacy patterns, mixed pipe styles.
+**Flag:** Inconsistent style, legacy patterns, `%>%` usage.
 
 ---
 
@@ -135,7 +137,7 @@ Save report to `quality_reports/[script_name]_r_review.md`:
 
 ### Issue 1: [Brief title]
 - **File:** `[path/to/file.R]:[line_number]`
-- **Category:** [Structure / Console / Reproducibility / Functions / Domain / Figures / RDS / Comments / Errors / Polish]
+- **Category:** [Structure / Console / Reproducibility / Functions / Domain / Figures / Data Caching / Comments / Errors / Polish]
 - **Severity:** [Critical / High / Medium / Low]
 - **Current:**
   ```r
@@ -158,7 +160,7 @@ Save report to `quality_reports/[script_name]_r_review.md`:
 | Functions | Yes/No | N |
 | Domain Correctness | Yes/No | N |
 | Figures | Yes/No | N |
-| RDS Pattern | Yes/No | N |
+| Data Caching | Yes/No | N |
 | Comments | Yes/No | N |
 | Error Handling | Yes/No | N |
 | Polish | Yes/No | N |
