@@ -3,7 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Claude Code Setup</title>
+  <title>Claude Code Academic Workflow — LaTeX, Quarto, Research Automation</title>
+  <meta name="description" content="A production-grade Claude Code template for AI-assisted academic research: lecture slides, papers, data analyses, and replication packages with multi-agent review and quality gates. Adopted by 15+ research groups.">
+  <meta name="keywords" content="Claude Code, academic workflow, LaTeX, Quarto, research automation, lecture slides, data analysis, reproducibility, econometrics, R&amp;R, peer review">
+  <meta name="author" content="Pedro H. C. Sant'Anna">
+  <link rel="canonical" href="https://psantanna.com/claude-code-my-workflow/">
+
+  <!-- Open Graph / social sharing -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Claude Code Academic Workflow Template">
+  <meta property="og:description" content="A ready-to-fork Claude Code template for academic research: 23 skills, 10 specialized agents, 18 rules, adversarial QA, and quality gates.">
+  <meta property="og:url" content="https://psantanna.com/claude-code-my-workflow/">
+
+  <!-- Structured data for Google rich snippets -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Claude Code Academic Workflow",
+    "description": "Production-grade Claude Code template for AI-assisted academic research with multi-agent review, quality gates, and adversarial QA.",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "macOS, Linux, Windows",
+    "url": "https://github.com/pedrohcgs/claude-code-my-workflow",
+    "license": "https://opensource.org/licenses/MIT",
+    "author": { "@type": "Person", "name": "Pedro H. C. Sant'Anna" }
+  }
+  </script>
   <style>
     body {
       font-family: Georgia, 'Times New Roman', serif;
@@ -184,7 +209,7 @@
     <li><strong>10 specialized agents</strong> <span class="desc">&mdash; proofreader, slide auditor, pedagogy reviewer, R reviewer, TikZ critic, domain reviewer, adversarial QA pair, translator, verifier</span></li>
     <li><strong>Adversarial critic-fixer loop</strong> <span class="desc">&mdash; two agents that check each other's work across up to 5 rounds &mdash; the critic can't fix, the fixer can't approve</span></li>
     <li><strong>Quality scoring with mandatory verification</strong> <span class="desc">&mdash; every file scored 0&ndash;100; nothing ships below 80; the orchestrator verifies every output before reporting done</span></li>
-    <li><strong>22 slash commands + 18 context-aware rules</strong> <span class="desc">&mdash; <code>/compile-latex</code>, <code>/proofread</code>, <code>/deploy</code>, <code>/commit</code>, <code>/qa-quarto</code>, <code>/lit-review</code>, <code>/review-paper</code>, <code>/data-analysis</code>, and more &mdash; plus quality gates, notation consistency, and R conventions</span></li>
+    <li><strong>23 slash commands + 18 context-aware rules</strong> <span class="desc">&mdash; <code>/compile-latex</code>, <code>/proofread</code>, <code>/deploy</code>, <code>/commit</code>, <code>/qa-quarto</code>, <code>/lit-review</code>, <code>/review-paper</code>, <code>/respond-to-referees</code>, <code>/data-analysis</code>, and more &mdash; plus quality gates, notation consistency, and R conventions</span></li>
     <li><strong>Research workflow skills</strong> <span class="desc">&mdash; <code>/lit-review</code> for literature synthesis, <code>/research-ideation</code> for hypothesis generation, <code>/interview-me</code> to formalize ideas, <code>/review-paper</code> for manuscript review, <code>/data-analysis</code> for end-to-end R analysis</span></li>
     <li><strong>Smart hooks</strong> <span class="desc">&mdash; Desktop notifications (macOS/Linux), file protection for bibliography and settings, pre-compaction context snapshots to session logs</span></li>
     <li><strong>Plan-first workflow with continuous learning</strong> <span class="desc">&mdash; non-trivial tasks start in plan mode; <code>[LEARN:tag]</code> corrections persist in MEMORY.md across sessions; plans survive context compression</span></li>
