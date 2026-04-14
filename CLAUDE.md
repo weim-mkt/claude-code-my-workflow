@@ -58,7 +58,12 @@ TEXINPUTS=../Preambles:$TEXINPUTS xelatex -interaction=nonstopmode file.tex
 
 # Quality score
 python scripts/quality_score.py Quarto/file.qmd
+
+# Palette sync (LaTeX ↔ SCSS)
+./scripts/check-palette-sync.sh
 ```
+
+**Palette contract:** color names in `Preambles/header.tex` must match SCSS variables in `Quarto/theme-template.scss`. See [`Preambles/README.md`](Preambles/README.md).
 
 ---
 
@@ -79,6 +84,7 @@ python scripts/quality_score.py Quarto/file.qmd
 | `/compile-latex [file]` | 3-pass XeLaTeX + bibtex |
 | `/deploy [LectureN]` | Render Quarto + sync to docs/ |
 | `/extract-tikz [LectureN]` | TikZ → PDF → SVG |
+| `/new-diagram [snippet] [output.tex]` | Scaffold a TikZ diagram from the gallery with prevention + review |
 | `/proofread [file]` | Grammar/typo/overflow review |
 | `/visual-audit [file]` | Slide layout audit |
 | `/pedagogy-review [file]` | Narrative, notation, pacing review |
@@ -93,9 +99,10 @@ python scripts/quality_score.py Quarto/file.qmd
 | `/lit-review [topic]` | Literature search + synthesis |
 | `/research-ideation [topic]` | Research questions + strategies |
 | `/interview-me [topic]` | Interactive research interview |
-| `/review-paper [file]` | Manuscript review |
+| `/review-paper [file]` | Manuscript review (single-pass / `--adversarial` / `--peer <journal>` simulated pipeline) |
 | `/respond-to-referees [report] [manuscript]` | R&R cross-reference + response draft |
 | `/data-analysis [dataset]` | End-to-end R analysis |
+| `/audit-reproducibility [paper]` | Enforce replication tolerance thresholds on paper ↔ code |
 | `/learn [skill-name]` | Extract discovery into persistent skill |
 | `/context-status` | Show session health + context usage |
 | `/deep-audit` | Repository-wide consistency audit |

@@ -2745,7 +2745,7 @@ You see: &quot;Analysis complete. 3 tables, 4 figures. Score: 85/100.&quot;</cod
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><strong>You talk, Claude orchestrates.</strong> The 10 agents, 23 skills, and 18 rules exist so you don’t have to think about them. Describe your goal, approve the plan, and let the system work.</p>
+<p><strong>You talk, Claude orchestrates.</strong> The 10 agents, 25 skills, and 20 rules exist so you don’t have to think about them. Describe your goal, approve the plan, and let the system work.</p>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -2758,7 +2758,7 @@ You see: &quot;Analysis complete. 3 tables, 4 figures. Score: 85/100.&quot;</cod
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>This guide describes the full system — 10 agents, 23 skills, 18 rules. That is the ceiling, not the floor. <strong>Start with just CLAUDE.md and 2–3 skills</strong> (<code>/compile-latex</code>, <code>/proofread</code>, <code>/commit</code>). Add rules and agents as you discover what you need. The template is designed for progressive adoption: fork it, fill in the placeholders, and start working. Everything else is there when you’re ready.</p>
+<p>This guide describes the full system — 10 agents, 25 skills, 20 rules. That is the ceiling, not the floor. <strong>Start with just CLAUDE.md and 2–3 skills</strong> (<code>/compile-latex</code>, <code>/proofread</code>, <code>/commit</code>). Add rules and agents as you discover what you need. The template is designed for progressive adoption: fork it, fill in the placeholders, and start working. Everything else is there when you’re ready.</p>
 </div>
 </div>
 <hr>
@@ -3373,7 +3373,7 @@ APPROVED   NEEDS WORK
 ├── replication-protocol.md      # paths: [&quot;scripts/**/*.R&quot;] — replicate first
 ├── exploration-folder-protocol.md  # paths: [&quot;explorations/**&quot;] — sandbox rules
 ├── orchestrator-research.md     # paths: [&quot;scripts/**/*.R&quot;, &quot;explorations/**&quot;] — simple loop
-└── ...14 path-scoped rules total</code></pre>
+└── ...16 path-scoped rules total</code></pre>
 <p>The first three always-on rules total ~148 lines of actionable instructions. <code>meta-governance</code> is a reference document for the template’s dual nature (working project vs. public template) and loads passively. Path-scoped rules add rich, domain-specific guidance exactly when Claude needs it.</p>
 <p><strong>Sync vs. translate:</strong> The <code>beamer-quarto-sync</code> rule handles incremental edits — fix a typo in Beamer, same fix goes to Quarto. The <code>/translate-to-quarto</code> skill is for full initial translation of a new lecture. Translate once, sync thereafter.</p>
 <p><strong>Why rules matter:</strong> Without them, Claude will use generic defaults. With them, Claude follows <em>your</em> standards consistently across sessions.</p>
@@ -3934,7 +3934,7 @@ APPROVED   NEEDS WORK
 <section id="hooks---automated-enforcement" class="level3" data-number="4.8.4">
 <h3 data-number="4.8.4" class="anchored" data-anchor-id="hooks---automated-enforcement"><span class="header-section-number">4.8.4</span> Hooks — Automated Enforcement</h3>
 <p>The session log reminder above is one example of a broader pattern: using <strong>hooks</strong> to enforce rules that Claude might otherwise forget during long sessions. Rules live in context and can be compressed away. Hooks live in <code>.claude/settings.json</code> and fire every time, regardless of context state.</p>
-<p>The template includes hooks for logging, notifications, file protection, and context survival:</p>
+<p>The template includes hooks for logging, notifications, and context survival:</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 23%">
@@ -3960,26 +3960,21 @@ APPROVED   NEEDS WORK
 <td>Desktop alert when Claude needs attention (macOS/Linux)</td>
 </tr>
 <tr class="odd">
-<td>File protection</td>
-<td><code>PreToolUse[Edit|Write]</code></td>
-<td>Blocks accidental edits to bibliography and settings</td>
-</tr>
-<tr class="even">
 <td>Context state capture</td>
 <td><code>PreCompact</code></td>
 <td>Saves plan state before auto-compaction</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Context restoration</td>
 <td><code>SessionStart[compact|resume]</code></td>
 <td>Restores context after compaction or resume</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Context monitor</td>
 <td><code>PostToolUse[Bash|Task]</code></td>
 <td>Progressive warnings at 40%/55%/65%/80%/90% context</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Verification reminder</td>
 <td><code>PostToolUse[Write|Edit]</code></td>
 <td>Reminds to compile/render before marking done</td>
@@ -4388,6 +4383,25 @@ APPROVED   NEEDS WORK
   +-- Phase 6: Deploy
         +-- /translate-to-quarto (optional)
         +-- /deploy</code></pre>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>TikZ diagrams: start from the gallery, not from scratch
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Writing TikZ from a blank page reliably produces label-over-arrow collisions because the compiler doesn’t warn about them. The template ships three reinforcing layers:</p>
+<ul>
+<li><strong><a href="https://github.com/pedrohcgs/claude-code-my-workflow/tree/main/templates/tikz-snippets"><code>templates/tikz-snippets/</code></a></strong> — 8 production-ready standalone diagrams (DAG basic, DAG mediation, two-period DiD, event study, timeline, regression scatter, 3-step flowchart, supply-demand). Each embeds the prevention rules (explicit node dimensions, coordinate map, directional edge labels) by construction.</li>
+<li><strong>Rules <code>tikz-prevention.md</code> + <code>tikz-measurement.md</code></strong> — Upstream authoring rules (P1–P6) and the six-pass collision protocol with formulas (Bézier depth, character widths, 0.4 cm boundary clearance). Adapted from Scott Cunningham’s <a href="https://github.com/scunning1975/MixtapeTools">MixtapeTools</a>.</li>
+<li><strong><a href="#all-skills"><code>/new-diagram</code></a> skill</strong> — Scaffolds from the gallery, runs the P3/P4 grep pre-check before compiling, invokes <code>tikz-reviewer</code> with measurement citations, loops until APPROVED.</li>
+</ul>
+<p>For existing diagrams in a Beamer deck, <code>/extract-tikz</code> runs the same pre-check plus the SVG pipeline.</p>
+</div>
+</div>
 </section>
 <section id="pattern-4-translating-beamer-to-quarto" class="level2" data-number="5.4">
 <h2 data-number="5.4" class="anchored" data-anchor-id="pattern-4-translating-beamer-to-quarto"><span class="header-section-number">5.4</span> Pattern 4: Translating Beamer to Quarto</h2>
@@ -4575,7 +4589,7 @@ Phase 4: QUALITY GATE
 <li>Cognitive load issues</li>
 </ul>
 <div class="callout callout-style-default callout-tip callout-titled">
-<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-24-contents" aria-controls="callout-24" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-25-contents" aria-controls="callout-25" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
@@ -4584,7 +4598,7 @@ Phase 4: QUALITY GATE
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-24" class="callout-24-contents callout-collapse collapse">
+<div id="callout-25" class="callout-25-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p>A stronger variant: when Claude reviews its own work in the same conversation, it suffers <strong>confirmation bias</strong> — it has internalized its own reasoning and will systematically find the work acceptable. The fix: spawn a new agent via the Task tool with NO access to the original conversation. Give it only the artifact and a critique prompt. The fresh agent has no sunk cost in the work and will be ruthless.</p>
 <blockquote class="blockquote">
@@ -4813,7 +4827,7 @@ Decision point (1-2 hours):
                            work backwards)</code></pre>
 <p><strong>Enter mid-pipeline.</strong> You do not have to start from ideation. If you already have data, start with <code>/data-analysis</code> and work backwards to the research question. If you already have a draft, start with <code>/review-paper</code>. The skills are modular — use what you need, skip what you don’t.</p>
 <div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-26-contents" aria-controls="callout-26" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-27-contents" aria-controls="callout-27" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
@@ -4822,7 +4836,7 @@ Decision point (1-2 hours):
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-26" class="callout-26-contents callout-collapse collapse">
+<div id="callout-27" class="callout-27-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p>For a production-grade paper pipeline, a dedicated fork takes these same skills and wraps them in full research infrastructure: 6 worker-critic agent pairs plus specialized agents (data-engineer, referees, verifier), simulated blind peer review, weighted aggregate scoring, journal targeting, and R&amp;R response routing. If your primary output is research papers, see <a href="#sec-ecosystem">The Ecosystem</a> for details.</p>
 </div>
@@ -5030,7 +5044,7 @@ Decision point (1-2 hours):
 <section id="pre-submission-checklist" class="level4" data-number="5.10.1.2">
 <h4 data-number="5.10.1.2" class="anchored" data-anchor-id="pre-submission-checklist"><span class="header-section-number">5.10.1.2</span> Pre-Submission Checklist</h4>
 <div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-28-contents" aria-controls="callout-28" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-29-contents" aria-controls="callout-29" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
@@ -5039,7 +5053,7 @@ Decision point (1-2 hours):
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-28" class="callout-28-contents callout-collapse collapse">
+<div id="callout-29" class="callout-29-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p><strong>Documentation:</strong></p>
 <ul class="task-list">
@@ -5088,7 +5102,7 @@ Decision point (1-2 hours):
 └── results/                # Output tables, figures</code></pre>
 <p>The orchestrator applies these standards automatically: ask Claude to <em>“prepare a replication package”</em> and the <code>replication-protocol</code> rule activates, enforcing the directory structure and checklist above. No manual invocation needed — the path-scoped rule fires whenever Claude works on replication-related files.</p>
 <div class="callout callout-style-default callout-tip callout-titled">
-<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-29-contents" aria-controls="callout-29" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-30-contents" aria-controls="callout-30" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
@@ -5097,7 +5111,7 @@ Decision point (1-2 hours):
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-29" class="callout-29-contents callout-collapse collapse">
+<div id="callout-30" class="callout-30-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p>A key principle that maps directly to this workflow: <strong>separate scientific reasoning from computational execution.</strong> Humans design diagnostic templates (what to measure); AI handles execution (how to run it).</p>
 <p>This is the template-executor architecture — and you are already using it:</p>
@@ -5193,7 +5207,7 @@ Decision point (1-2 hours):
 <h4 data-number="5.10.2.4" class="anchored" data-anchor-id="how-existing-agents-support-this"><span class="header-section-number">5.10.2.4</span> How Existing Agents Support This</h4>
 <p>The <code>/slide-excellence</code> skill already invokes the pedagogy-reviewer and slide-auditor, which enforce many of these principles automatically. To enforce <em>all</em> of them — including title-as-assertion and MB/MC smoothness — customize the <strong>domain-reviewer</strong> agent (<code>.claude/agents/domain-reviewer.md</code>) with rhetoric-of-decks lenses. The orchestrator will then apply them during every review cycle without manual invocation.</p>
 <div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-30-contents" aria-controls="callout-30" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-31-contents" aria-controls="callout-31" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
@@ -5202,7 +5216,7 @@ Decision point (1-2 hours):
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-30" class="callout-30-contents callout-collapse collapse">
+<div id="callout-31" class="callout-31-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p>For the complete philosophical treatment — from Aristotle’s three modes of persuasion through neuroaesthetics and the Netflix analogy — see <a href="https://github.com/scunning1975/MixtapeTools/tree/main/presentations">The Rhetoric of Decks</a>. The repository includes a full essay, example Beamer decks with professional color palettes, a <code>theme_rhetoric()</code> ggplot2 theme, and a tested deck generation prompt for Claude Code.</p>
 </div>
@@ -5465,16 +5479,18 @@ Claude: [Runs 7 sequential forked reviews, each blind to the others]
 </section>
 <section id="step-3-adapt-your-theme" class="level2" data-number="7.3">
 <h2 data-number="7.3" class="anchored" data-anchor-id="step-3-adapt-your-theme"><span class="header-section-number">7.3</span> Step 3: Adapt Your Theme</h2>
-<p>The template includes an example Quarto theme SCSS file. To customize:</p>
+<p>The template includes matching LaTeX and Quarto palettes. To customize:</p>
 <ol type="1">
-<li>Change the color palette to your institution’s colors</li>
-<li>Update CSS class names if needed</li>
-<li>Modify the beamer-translator environment mapping to match your classes</li>
+<li>Edit <code>Preambles/header.tex</code> (Beamer/TikZ) <strong>and</strong> <code>Quarto/theme-template.scss</code> (Quarto) together — same color names, matching HEX values.</li>
+<li>Run <code>./scripts/check-palette-sync.sh</code> to confirm they agree. The check is also invoked by <code>./scripts/validate-setup.sh</code> after any palette edit.</li>
+<li>Update CSS class names in the SCSS if needed.</li>
+<li>Modify the <code>beamer-translator</code> environment mapping to match your classes.</li>
 </ol>
+<p><strong>Palette contract.</strong> The core palette names (<code>primary-blue</code>, <code>primary-gold</code>, <code>highlight-yellow</code>, <code>light-bg</code>, <code>jet</code>) must exist on both surfaces. Snippets in <code>templates/tikz-snippets/</code> currently inline their colors for standalone compilation, but real lectures that <code>\input{header}</code> inherit the palette automatically. See <a href="../Preambles/README.md"><code>Preambles/README.md</code></a> for the full contract and TikZ style library.</p>
 </section>
 <section id="sec-create-skills" class="level2" data-number="7.4">
 <h2 data-number="7.4" class="anchored" data-anchor-id="sec-create-skills"><span class="header-section-number">7.4</span> Step 4: Creating Custom Skills</h2>
-<p>The guide includes 22 <a href="#skills---reusable-slash-commands">skills</a> for common academic tasks. But if you have repetitive workflows specific to your domain, you can create your own.</p>
+<p>The guide includes 24 <a href="#skills---reusable-slash-commands">skills</a> for common academic tasks. But if you have repetitive workflows specific to your domain, you can create your own.</p>
 <section id="when-to-create-a-skill" class="level3" data-number="7.4.1">
 <h3 data-number="7.4.1" class="anchored" data-anchor-id="when-to-create-a-skill"><span class="header-section-number">7.4.1</span> When to Create a Skill</h3>
 <p>Create a skill when: - You repeatedly explain the same 3+ step workflow to Claude - You need domain-specific quality checks (citation style, notation consistency, lab protocols) - You enforce field-specific output formats (thesis structure, journal templates) - You coordinate multi-tool workflows (data → analysis → manuscript)</p>
@@ -5732,11 +5748,11 @@ Claude: [Runs 7 sequential forked reviews, each blind to the others]
 <li><strong>Verify everything.</strong> The verification rule exists for a reason. Never skip compilation or rendering checks.</li>
 <li><strong>Session logs matter.</strong> Document design decisions, not just what changed. Future-you will thank present-you.</li>
 <li><strong>Devil’s Advocate early.</strong> Challenge slide structure before you’ve built 50 slides on a shaky foundation.</li>
-<li><strong>Progressive disclosure.</strong> Start with CLAUDE.md + 2–3 rules. Add more as your workflow matures. Newcomers should not face 18 rules on day one.</li>
+<li><strong>Progressive disclosure.</strong> Start with CLAUDE.md + 2–3 rules. Add more as your workflow matures. Newcomers should not face 20 rules on day one.</li>
 <li><strong>Use <code>CLAUDE.local.md</code> for personal overrides.</strong> This file is automatically gitignored and loaded alongside <code>CLAUDE.md</code>. Put machine-specific paths, personal preferences, and local tool versions here — they won’t pollute the shared repo.</li>
 </ol>
 <div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-34-contents" aria-controls="callout-34" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center collapsed" data-bs-toggle="collapse" data-bs-target=".callout-35-contents" aria-controls="callout-35" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
@@ -5745,7 +5761,7 @@ Claude: [Runs 7 sequential forked reviews, each blind to the others]
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-34" class="callout-34-contents callout-collapse collapse">
+<div id="callout-35" class="callout-35-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p>For capabilities beyond file editing and shell commands — web search during literature review, database queries for replication, or reference manager integration (Zotero, Mendeley) — Claude Code supports <a href="https://modelcontextprotocol.io">MCP servers</a>. Configure them in <code>.claude/settings.json</code> under <code>&quot;mcpServers&quot;</code>. Start with skills and agents first; add MCP when you need external integrations.</p>
 <section id="extending-with-plugins" class="level2" data-number="7.6">
@@ -5861,89 +5877,99 @@ Claude: [Runs 7 sequential forked reviews, each blind to the others]
 <td>TikZ to SVG conversion</td>
 </tr>
 <tr class="even">
+<td><code>/new-diagram</code></td>
+<td><code>.claude/skills/new-diagram/</code></td>
+<td>Scaffold a TikZ diagram from the gallery</td>
+</tr>
+<tr class="odd">
 <td><code>/proofread</code></td>
 <td><code>.claude/skills/proofread/</code></td>
 <td>Run proofreading agent</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>/visual-audit</code></td>
 <td><code>.claude/skills/visual-audit/</code></td>
 <td>Run layout audit agent</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>/pedagogy-review</code></td>
 <td><code>.claude/skills/pedagogy-review/</code></td>
 <td>Run pedagogy review agent</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>/review-r</code></td>
 <td><code>.claude/skills/review-r/</code></td>
 <td>Run R code review agent</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>/qa-quarto</code></td>
 <td><code>.claude/skills/qa-quarto/</code></td>
 <td>Critic-fixer adversarial loop</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>/slide-excellence</code></td>
 <td><code>.claude/skills/slide-excellence/</code></td>
 <td>Combined multi-agent review</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>/translate-to-quarto</code></td>
 <td><code>.claude/skills/translate-to-quarto/</code></td>
 <td>Beamer to Quarto translation</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>/validate-bib</code></td>
 <td><code>.claude/skills/validate-bib/</code></td>
 <td>Bibliography validation</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>/devils-advocate</code></td>
 <td><code>.claude/skills/devils-advocate/</code></td>
 <td>Design challenge questions</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>/create-lecture</code></td>
 <td><code>.claude/skills/create-lecture/</code></td>
 <td>Full lecture creation</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>/commit</code></td>
 <td><code>.claude/skills/commit/</code></td>
 <td>Stage, commit, PR, and merge</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>/lit-review</code></td>
 <td><code>.claude/skills/lit-review/</code></td>
 <td>Literature search and synthesis</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>/research-ideation</code></td>
 <td><code>.claude/skills/research-ideation/</code></td>
 <td>Research questions and strategies</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>/interview-me</code></td>
 <td><code>.claude/skills/interview-me/</code></td>
 <td>Interactive research interview</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>/review-paper</code></td>
 <td><code>.claude/skills/review-paper/</code></td>
 <td>Manuscript review</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>/respond-to-referees</code></td>
 <td><code>.claude/skills/respond-to-referees/</code></td>
 <td>R&amp;R cross-reference and response draft</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>/data-analysis</code></td>
 <td><code>.claude/skills/data-analysis/</code></td>
 <td>End-to-end R analysis</td>
+</tr>
+<tr class="even">
+<td><code>/audit-reproducibility</code></td>
+<td><code>.claude/skills/audit-reproducibility/</code></td>
+<td>Enforce replication tolerance thresholds on paper ↔︎ code</td>
 </tr>
 <tr class="odd">
 <td><code>/learn</code></td>
@@ -6043,6 +6069,16 @@ Claude: [Runs 7 sequential forked reviews, each blind to the others]
 <td><code>.tex</code></td>
 </tr>
 <tr class="even">
+<td>TikZ Prevention</td>
+<td><code>tikz-prevention.md</code></td>
+<td><code>Slides/**</code>, <code>Figures/**</code>, <code>Preambles/**</code></td>
+</tr>
+<tr class="odd">
+<td>TikZ Measurement</td>
+<td><code>tikz-measurement.md</code></td>
+<td><code>Slides/**</code>, <code>Figures/**</code>, <code>Preambles/**</code>, <code>scripts/**</code></td>
+</tr>
+<tr class="even">
 <td>Beamer-Quarto Sync</td>
 <td><code>beamer-quarto-sync.md</code></td>
 <td><code>.tex</code>, <code>.qmd</code></td>
@@ -6117,26 +6153,21 @@ Claude: [Runs 7 sequential forked reviews, each blind to the others]
 <td><code>.claude/hooks/notify.sh</code></td>
 </tr>
 <tr class="odd">
-<td>File protection</td>
-<td>PreToolUse[Edit|Write] (command)</td>
-<td><code>.claude/hooks/protect-files.sh</code></td>
-</tr>
-<tr class="even">
 <td>Context state capture</td>
 <td>PreCompact (command)</td>
 <td><code>.claude/hooks/pre-compact.py</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Context restoration</td>
 <td>SessionStart[compact|resume] (command)</td>
 <td><code>.claude/hooks/post-compact-restore.py</code></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Context monitor</td>
 <td>PostToolUse[Bash|Task] (command)</td>
 <td><code>.claude/hooks/context-monitor.py</code></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Verification reminder</td>
 <td>PostToolUse[Write|Edit] (command)</td>
 <td><code>.claude/hooks/verify-reminder.py</code></td>

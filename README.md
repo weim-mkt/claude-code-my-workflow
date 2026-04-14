@@ -12,7 +12,9 @@ A ready-to-fork foundation for AI-assisted academic work. You describe what you 
 
 ---
 
-## Quick Start (5 minutes)
+## Quick Start (5–10 minutes, plus ~30 min for first-time installs)
+
+> **Before you start:** Claude Code + git are the minimum. To run the included `HelloWorld` demos end-to-end you also need XeLaTeX (Beamer sample) and Quarto (Quarto sample). R and the GitHub CLI are recommended. Python 3 is used by a few internal scripts (`check-palette-sync.py`, `check-tikz-prevention.py`) and is pre-installed on macOS/Linux. Full list in [Prerequisites](#prerequisites) below. Fastest path: clone first, then run `./scripts/validate-setup.sh` — it reports exactly what's missing with install links.
 
 ### 1. Fork & Clone
 
@@ -20,6 +22,7 @@ A ready-to-fork foundation for AI-assisted academic work. You describe what you 
 # Fork this repo on GitHub (click "Fork" on the repo page), then:
 git clone https://github.com/YOUR_USERNAME/claude-code-my-workflow.git my-project
 cd my-project
+./scripts/validate-setup.sh        # reports missing tools with install links
 ```
 
 Replace `YOUR_USERNAME` with your GitHub username.
@@ -31,6 +34,8 @@ claude
 ```
 
 **Using VS Code?** Open the Claude Code panel instead. Everything works the same — see the [full guide](https://psantanna.com/claude-code-my-workflow/workflow-guide.html#sec-setup) for details.
+
+> **Avoid prompt fatigue.** Out of the box, Claude Code asks permission for every tool invocation. After the first few approvals, toggle **Auto-accept edits** mode (a keybinding; see the [permission modes section](https://psantanna.com/claude-code-my-workflow/workflow-guide.html#settings---permissions-and-hooks) of the guide) or run `claude --permission-mode acceptEdits`. For fully-autonomous runs on a trusted repo, **Bypass** mode skips prompts entirely. The template's `.claude/settings.json` pre-approves ~100 common Bash and Edit/Write patterns, so even at default permissions most work is unattended.
 
 Then paste the [starter prompt](https://psantanna.com/claude-code-my-workflow/workflow-guide.html#sec-first-session) from the guide, filling in your project details:
 
@@ -137,7 +142,7 @@ The guide covers Claude Code's latest capabilities:
 ## What's Included
 
 <details>
-<summary><strong>10 agents, 23 skills, 18 rules, 7 hooks</strong> (click to expand)</summary>
+<summary><strong>13 agents, 26 skills, 21 rules, 6 hooks</strong> (click to expand)</summary>
 
 ### Agents (`.claude/agents/`)
 
@@ -245,14 +250,20 @@ Rules use path-scoped loading: **always-on** rules load every session (~100 line
 
 | Tool | Required For | Install |
 |------|-------------|---------|
-| [Claude Code](https://code.claude.com/docs/en/overview) | Everything | `npm install -g @anthropic-ai/claude-code` |
-| XeLaTeX | LaTeX compilation | [TeX Live](https://tug.org/texlive/) or [MacTeX](https://tug.org/mactex/) |
-| [Quarto](https://quarto.org) | Web slides | [quarto.org/docs/get-started](https://quarto.org/docs/get-started/) |
-| R | Figures & analysis | [r-project.org](https://www.r-project.org/) |
-| pdf2svg | TikZ to SVG | `brew install pdf2svg` (macOS) |
-| [gh CLI](https://cli.github.com/) | PR workflow | `brew install gh` (macOS) |
+| [Claude Code](https://code.claude.com/docs/en/overview) | Everything | [claude.ai/install](https://claude.ai/install) |
+| git | Clone + version control | [git-scm.com](https://git-scm.com/downloads) |
+| Python 3 (3.9+) | Internal checkers (palette sync, TikZ prevention) | Preinstalled on macOS/Linux; [python.org](https://www.python.org/) for Windows |
+| XeLaTeX | LaTeX compilation (Beamer `HelloWorld`, real lectures) | [TeX Live](https://tug.org/texlive/) or [MacTeX](https://tug.org/mactex/) |
+| [Quarto](https://quarto.org) | Web slides (Quarto `HelloWorld`, real lectures) | [quarto.org/docs/get-started](https://quarto.org/docs/get-started/) |
+| R | Figures and analysis (`/data-analysis`, `scripts/R/` template) | [r-project.org](https://www.r-project.org/) |
+| pdf2svg | TikZ → SVG for Quarto (`/extract-tikz`) | `brew install pdf2svg` (macOS), `apt install pdf2svg` (Debian) |
+| [gh CLI](https://cli.github.com/) | PR / issue workflow | `brew install gh` (macOS), `apt install gh` (Debian) |
 
-Not all tools are needed — install only what your project uses. Claude Code is the only hard requirement.
+**Minimum to fork this template:** Claude Code + git + Python 3 (Python is already installed on macOS/Linux).
+
+**Minimum to run the included HelloWorld demos end-to-end:** add XeLaTeX (for `/compile-latex HelloWorld`) and Quarto (for `/deploy HelloWorld`).
+
+**Your real lectures may need more** — R for `scripts/R/` analyses, pdf2svg if you use TikZ extraction, gh CLI if you use the PR-based commit workflow. `./scripts/validate-setup.sh` reports which of these are installed and what each unlocks.
 
 ---
 
@@ -260,7 +271,7 @@ Not all tools are needed — install only what your project uses. Claude Code is
 
 1. **Fill in the knowledge base** (`.claude/rules/knowledge-base-template.md`) with your notation, applications, and design principles
 2. **Customize the domain reviewer** (`.claude/agents/domain-reviewer.md`) with review lenses specific to your field
-3. **Update the color palette** in your Quarto theme SCSS file — change the color variables at the top
+3. **Update the color palette** — this is a **two-surface contract**: change the HEX values at the top of **both** [`Preambles/header.tex`](Preambles/header.tex) (Beamer/TikZ) **and** [`Quarto/theme-template.scss`](Quarto/theme-template.scss) (Quarto slides) so they agree. Then run `./scripts/check-palette-sync.sh` to verify. Forgetting one surface silently produces mismatched Beamer vs. Quarto renderings. See [`Preambles/README.md`](Preambles/README.md) for the full contract and the TikZ style library.
 4. **Add field-specific R pitfalls** to `.claude/rules/r-code-conventions.md`
 5. **Fill in the lecture mapping** in `.claude/rules/beamer-quarto-sync.md`
 6. **Customize the workflow quick reference** (`.claude/WORKFLOW_QUICK_REF.md`) with your non-negotiables and preferences
@@ -287,7 +298,7 @@ As of March 2026, **15+ research groups** across economics, energy, political sc
 
 **Extended workflows:**
 
-- **[clo-author](https://github.com/hsantanna88/clo-author)** by Hugo Sant'Anna (UAB) — Paper-centric research workflows with 17 specialized agents (6 worker-critic pairs plus referees, data-engineer, verifier), simulated blind peer review, AEA replication compliance, and full research lifecycle management
+- **[clo-author](https://github.com/hugosantanna/clo-author)** by Hugo Sant'Anna (UAB) — Paper-centric research workflows with 17 specialized agents (6 worker-critic pairs plus referees, data-engineer, verifier), simulated blind peer review, AEA replication compliance, and full research lifecycle management. **The `/review-paper --peer <journal>` pipeline in this template is adapted from clo-author with Hugo's permission** (pipeline shape, 6-way disposition taxonomy, journal-calibration schema, paper-type branching). Thanks, Hugo.
 - **[claudeblattman](https://github.com/chrisblattman/claudeblattman)** by Chris Blattman (U Chicago) — Comprehensive guide for non-technical academics: executive assistant workflows, proposal writing, agent debates, and self-improving configuration
 - **[MixtapeTools](https://github.com/scunning1975/MixtapeTools)** by Scott Cunningham (Baylor) — The Rhetoric of Decks: philosophy and practice of beautiful, rhetorically effective academic presentations
 - **[autoresearch](https://github.com/karpathy/autoresearch)** by Andrej Karpathy — Constraint-based autonomous research with `program.md` as constitutional document
@@ -301,7 +312,7 @@ See the [guide's ecosystem section](https://psantanna.com/claude-code-my-workflo
 
 - **What's new:** see [CHANGELOG.md](CHANGELOG.md). We follow loose semver — breaking changes get major bumps so you can decide when to pull updates.
 - **How to contribute:** see [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md). PRs welcome for generalizable improvements; fork-specific work stays in your fork.
-- **Pin to a version:** `git checkout v1.2.0`.
+- **Pin to a version:** `git checkout v1.3.0` (current as of 2026-04-13).
 
 ---
 

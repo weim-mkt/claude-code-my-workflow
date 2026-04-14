@@ -99,11 +99,65 @@ else
 fi
 echo ""
 
+echo -e "${BOLD}Palette sync (LaTeX ↔ SCSS):${RESET}"
+palette_script="$(dirname "$0")/check-palette-sync.sh"
+if [ -x "$palette_script" ]; then
+    # Rely on the helper's exit code — stable contract, not text matching.
+    # 0 = in sync, 1 = divergence.
+    if "$palette_script" >/dev/null 2>&1; then
+        echo -e "  ${GREEN}✓${RESET} Preambles/header.tex ↔ Quarto/theme-template.scss agree on the core palette"
+        pass=$((pass + 1))
+    else
+        echo -e "  ${YELLOW}⚠${RESET} Palette drift — run ./scripts/check-palette-sync.sh for details"
+        warn=$((warn + 1))
+    fi
+else
+    echo -e "  ${YELLOW}⚠${RESET} scripts/check-palette-sync.sh missing or not executable — skipping"
+    warn=$((warn + 1))
+fi
+echo ""
+
 echo -e "${BOLD}Summary:${RESET} ${GREEN}${pass} passed${RESET}, ${YELLOW}${warn} warnings${RESET}, ${RED}${fail} failed${RESET}"
 echo ""
 
+# Which tools did we actually find? Gate the next-step suggestions accordingly.
+# Use string flags (not command names) so shellcheck is happy and `if` bodies
+# read naturally.
+has_claude="false";  command -v claude  >/dev/null 2>&1 && has_claude="true"
+has_xelatex="false"; command -v xelatex >/dev/null 2>&1 && has_xelatex="true"
+has_quarto="false";  command -v quarto  >/dev/null 2>&1 && has_quarto="true"
+has_r="false";       command -v R       >/dev/null 2>&1 && has_r="true"
+
 if [ "$fail" -gt 0 ]; then
-    echo -e "${RED}Setup incomplete.${RESET} Install the missing required tools, then run this script again."
+    echo -e "${RED}Some required tools are missing.${RESET}"
+    echo ""
+    echo -e "${BOLD}What you CAN do right now:${RESET}"
+    if [ "$has_claude" = "true" ]; then
+        echo "  - Open Claude Code:                      claude"
+        echo ""
+        echo "  ${BOLD}Inside Claude Code${RESET} (these are slash-commands, NOT shell commands):"
+        if [ "$has_quarto" = "true" ]; then
+            echo "    /deploy HelloWorld         # render Quarto sample"
+        fi
+        if [ "$has_xelatex" = "true" ]; then
+            echo "    /compile-latex HelloWorld  # compile Beamer sample"
+        fi
+        if [ "$has_r" = "true" ]; then
+            echo "    /data-analysis             # orchestrate R analysis"
+        fi
+        if [ "$has_xelatex" != "true" ]; then
+            echo ""
+            echo "  (Beamer workflow disabled until you install XeLaTeX: https://tug.org/texlive/)"
+        fi
+        if [ "$has_quarto" != "true" ]; then
+            echo "  (Quarto deploy disabled until you install Quarto: https://quarto.org/docs/get-started/)"
+        fi
+    else
+        echo "  - Install Claude Code first: https://claude.ai/install"
+        echo "    (Everything else in this template is orchestrated through Claude.)"
+    fi
+    echo ""
+    echo -e "${BOLD}Next:${RESET} install the missing required tool(s) listed above, then re-run this script."
     exit 1
 fi
 

@@ -54,7 +54,7 @@ Claude Code runs on your computer with full access to your file system, terminal
 | Access git history | Commits, PRs, branches --- all from the conversation |
 | Persistent memory | CLAUDE.md + MEMORY.md survive across sessions |
 | Orchestrator mode | Claude autonomously plans, implements, reviews, fixes, and verifies |
-| Multi-agent workflows | 10 specialized agents for proofreading, layout, pedagogy, code review |
+| Multi-agent workflows | 13 specialized agents for proofreading, layout, pedagogy, code review |
 | Quality gates | Automated scoring --- nothing ships below 80/100 |
 | CLI/headless mode | Run from scripts: `claude -p "compile all lectures"` |
 | Browser bridge | Continue sessions on your phone via `/remote-control` |
@@ -62,7 +62,7 @@ Claude Code runs on your computer with full access to your file system, terminal
 ::: {.callout-tip}
 ## Case Study: Econ 730 at Emory
 
-This workflow was developed over 6+ sessions building a PhD course on Causal Panel Data. The result: 6 complete lectures (140+ slides each), with Beamer + Quarto versions, interactive Plotly charts, TikZ diagrams, and R replication scripts --- all managed by the orchestrator and reviewed by 10 specialized agents across 5 quality dimensions.
+This workflow was developed over 6+ sessions building a PhD course on Causal Panel Data. The result: 6 complete lectures (140+ slides each), with Beamer + Quarto versions, interactive Plotly charts, TikZ diagrams, and R replication scripts --- all managed by the orchestrator and reviewed by 13 specialized agents across 5 quality dimensions.
 
 While this case study centers on slides, every component --- agents, orchestrator, quality gates --- works identically for research papers, data analysis, and proposals.
 :::
@@ -153,13 +153,13 @@ Most of the time, you just describe what you want and Claude handles the rest. E
 ::: {.callout-important}
 ## The Bottom Line
 
-**You talk, Claude orchestrates.** The 10 agents, 23 skills, and 18 rules exist so you don't have to think about them. Describe your goal, approve the plan, and let the system work.
+**You talk, Claude orchestrates.** The 13 agents, 26 skills, and 21 rules exist so you don't have to think about them. Describe your goal, approve the plan, and let the system work.
 :::
 
 ::: {.callout-note}
 ## You Don't Need All of This on Day One
 
-This guide describes the full system --- 10 agents, 23 skills, 18 rules. That is the ceiling, not the floor. **Start with just CLAUDE.md and 2--3 skills** (`/compile-latex`, `/proofread`, `/commit`). Add rules and agents as you discover what you need. The template is designed for progressive adoption: fork it, fill in the placeholders, and start working. Everything else is there when you're ready.
+This guide describes the full system --- 13 agents, 26 skills, 21 rules. That is the ceiling, not the floor. **Start with just CLAUDE.md and 2--3 skills** (`/compile-latex`, `/proofread`, `/commit`). Add rules and agents as you discover what you need. The template is designed for progressive adoption: fork it, fill in the placeholders, and start working. Everything else is there when you're ready.
 :::
 
 ---
@@ -559,7 +559,7 @@ Rules are markdown files in `.claude/rules/` that Claude loads automatically. Th
 ├── replication-protocol.md      # paths: ["scripts/**/*.R"] — replicate first
 ├── exploration-folder-protocol.md  # paths: ["explorations/**"] — sandbox rules
 ├── orchestrator-research.md     # paths: ["scripts/**/*.R", "explorations/**"] — simple loop
-└── ...14 path-scoped rules total
+└── ...16 path-scoped rules total
 ```
 
 The first three always-on rules total ~148 lines of actionable instructions. `meta-governance` is a reference document for the template's dual nature (working project vs. public template) and loads passively. Path-scoped rules add rich, domain-specific guidance exactly when Claude needs it.
@@ -906,13 +906,12 @@ The first four layers are your safety net. Anything written to disk survives ind
 
 The session log reminder above is one example of a broader pattern: using **hooks** to enforce rules that Claude might otherwise forget during long sessions. Rules live in context and can be compressed away. Hooks live in `.claude/settings.json` and fire every time, regardless of context state.
 
-The template includes hooks for logging, notifications, file protection, and context survival:
+The template includes hooks for logging, notifications, and context survival:
 
 | Hook | Event | What It Does |
 |------|-------|-------------|
 | Session log reminder | `Stop` | Reminds about session logs after every response |
 | Desktop notification | `Notification` | Desktop alert when Claude needs attention (macOS/Linux) |
-| File protection | `PreToolUse[Edit|Write]` | Blocks accidental edits to bibliography and settings |
 | Context state capture | `PreCompact` | Saves plan state before auto-compaction |
 | Context restoration | `SessionStart[compact|resume]` | Restores context after compaction or resume |
 | Context monitor | `PostToolUse[Bash|Task]` | Progressive warnings at 40%/55%/65%/80%/90% context |
@@ -1185,6 +1184,18 @@ The `/create-lecture` skill guides you through a structured lecture creation wor
         +-- /translate-to-quarto (optional)
         +-- /deploy
 ```
+
+::: {.callout-tip}
+## TikZ diagrams: start from the gallery, not from scratch
+
+Writing TikZ from a blank page reliably produces label-over-arrow collisions because the compiler doesn't warn about them. The template ships three reinforcing layers:
+
+- **[`templates/tikz-snippets/`](https://github.com/pedrohcgs/claude-code-my-workflow/tree/main/templates/tikz-snippets)** — 8 production-ready standalone diagrams (DAG basic, DAG mediation, two-period DiD, event study, timeline, regression scatter, 3-step flowchart, supply-demand). Each embeds the prevention rules (explicit node dimensions, coordinate map, directional edge labels) by construction.
+- **Rules `tikz-prevention.md` + `tikz-measurement.md`** — Upstream authoring rules (P1–P6) and the six-pass collision protocol with formulas (Bézier depth, character widths, 0.4 cm boundary clearance). Adapted from Scott Cunningham's [MixtapeTools](https://github.com/scunning1975/MixtapeTools).
+- **[`/new-diagram`](#all-skills) skill** — Scaffolds from the gallery, runs the P3/P4 grep pre-check before compiling, invokes `tikz-reviewer` with measurement citations, loops until APPROVED.
+
+For existing diagrams in a Beamer deck, `/extract-tikz` runs the same pre-check plus the SVG pipeline.
+:::
 
 ## Pattern 4: Translating Beamer to Quarto {#pattern-4-translating-beamer-to-quarto}
 
@@ -1955,15 +1966,18 @@ Copy `.claude/agents/domain-reviewer.md` and customize the [5-lens framework](#s
 
 ## Step 3: Adapt Your Theme
 
-The template includes an example Quarto theme SCSS file. To customize:
+The template includes matching LaTeX and Quarto palettes. To customize:
 
-1. Change the color palette to your institution's colors
-2. Update CSS class names if needed
-3. Modify the beamer-translator environment mapping to match your classes
+1. Edit `Preambles/header.tex` (Beamer/TikZ) **and** `Quarto/theme-template.scss` (Quarto) together — same color names, matching HEX values.
+2. Run `./scripts/check-palette-sync.sh` to confirm they agree. The check is also invoked by `./scripts/validate-setup.sh` after any palette edit.
+3. Update CSS class names in the SCSS if needed.
+4. Modify the `beamer-translator` environment mapping to match your classes.
+
+**Palette contract.** The core palette names (`primary-blue`, `primary-gold`, `highlight-yellow`, `light-bg`, `jet`) must exist on both surfaces. Snippets in `templates/tikz-snippets/` currently inline their colors for standalone compilation, but real lectures that `\input{header}` inherit the palette automatically. See [`Preambles/README.md`](../Preambles/README.md) for the full contract and TikZ style library.
 
 ## Step 4: Creating Custom Skills {#sec-create-skills}
 
-The guide includes 22 [skills](#skills---reusable-slash-commands) for common academic tasks. But if you have repetitive workflows specific to your domain, you can create your own.
+The guide includes 24 [skills](#skills---reusable-slash-commands) for common academic tasks. But if you have repetitive workflows specific to your domain, you can create your own.
 
 ### When to Create a Skill
 
@@ -2153,7 +2167,7 @@ This is the `/learn` lifecycle in action: discover a repeating workflow → extr
 5. **Verify everything.** The verification rule exists for a reason. Never skip compilation or rendering checks.
 6. **Session logs matter.** Document design decisions, not just what changed. Future-you will thank present-you.
 7. **Devil's Advocate early.** Challenge slide structure before you've built 50 slides on a shaky foundation.
-8. **Progressive disclosure.** Start with CLAUDE.md + 2--3 rules. Add more as your workflow matures. Newcomers should not face 18 rules on day one.
+8. **Progressive disclosure.** Start with CLAUDE.md + 2--3 rules. Add more as your workflow matures. Newcomers should not face 21 rules on day one.
 9. **Use `CLAUDE.local.md` for personal overrides.** This file is automatically gitignored and loaded alongside `CLAUDE.md`. Put machine-specific paths, personal preferences, and local tool versions here --- they won't pollute the shared repo.
 
 ::: {.callout-note collapse="true"}
@@ -2192,6 +2206,7 @@ Claude Code supports **plugins** --- bundled collections of skills, agents, hook
 | `/compile-latex` | `.claude/skills/compile-latex/` | XeLaTeX 3-pass compilation |
 | `/deploy` | `.claude/skills/deploy/` | Quarto render + GitHub Pages sync |
 | `/extract-tikz` | `.claude/skills/extract-tikz/` | TikZ to SVG conversion |
+| `/new-diagram` | `.claude/skills/new-diagram/` | Scaffold a TikZ diagram from the gallery |
 | `/proofread` | `.claude/skills/proofread/` | Run proofreading agent |
 | `/visual-audit` | `.claude/skills/visual-audit/` | Run layout audit agent |
 | `/pedagogy-review` | `.claude/skills/pedagogy-review/` | Run pedagogy review agent |
@@ -2209,6 +2224,7 @@ Claude Code supports **plugins** --- bundled collections of skills, agents, hook
 | `/review-paper` | `.claude/skills/review-paper/` | Manuscript review |
 | `/respond-to-referees` | `.claude/skills/respond-to-referees/` | R&R cross-reference and response draft |
 | `/data-analysis` | `.claude/skills/data-analysis/` | End-to-end R analysis |
+| `/audit-reproducibility` | `.claude/skills/audit-reproducibility/` | Enforce replication tolerance thresholds on paper ↔ code |
 | `/learn` | `.claude/skills/learn/` | Extract discoveries into persistent skills |
 | `/context-status` | `.claude/skills/context-status/` | Show session health and context usage |
 | `/deep-audit` | `.claude/skills/deep-audit/` | Repository-wide consistency audit |
@@ -2233,6 +2249,8 @@ Claude Code supports **plugins** --- bundled collections of skills, agents, hook
 | Quality Gates | `quality-gates.md` | `.tex`, `.qmd`, `*.R` |
 | R Code Conventions | `r-code-conventions.md` | `*.R` |
 | TikZ Quality | `tikz-visual-quality.md` | `.tex` |
+| TikZ Prevention | `tikz-prevention.md` | `Slides/**`, `Figures/**`, `Preambles/**` |
+| TikZ Measurement | `tikz-measurement.md` | `Slides/**`, `Figures/**`, `Preambles/**`, `scripts/**` |
 | Beamer-Quarto Sync | `beamer-quarto-sync.md` | `.tex`, `.qmd` |
 | PDF Processing | `pdf-processing.md` | `master_supporting_docs/` |
 | Proofreading Protocol | `proofreading-protocol.md` | `.tex`, `.qmd`, `quality_reports/` |
@@ -2249,7 +2267,6 @@ Claude Code supports **plugins** --- bundled collections of skills, agents, hook
 |------|------|--------------|
 | Session log reminder | Stop (command) | `.claude/hooks/log-reminder.py` |
 | Desktop notification | Notification (command) | `.claude/hooks/notify.sh` |
-| File protection | PreToolUse[Edit\|Write] (command) | `.claude/hooks/protect-files.sh` |
 | Context state capture | PreCompact (command) | `.claude/hooks/pre-compact.py` |
 | Context restoration | SessionStart[compact\|resume] (command) | `.claude/hooks/post-compact-restore.py` |
 | Context monitor | PostToolUse[Bash\|Task] (command) | `.claude/hooks/context-monitor.py` |
