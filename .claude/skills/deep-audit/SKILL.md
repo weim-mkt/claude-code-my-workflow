@@ -43,7 +43,10 @@ Focus: `.claude/hooks/*.py` and `.claude/hooks/*.sh`
 - Hash length consistency (`[:8]` across all hooks)
 - Proper error handling (fail-open pattern: top-level `try/except` with `sys.exit(0)`)
 - JSON input/output correctness (stdin for input, stdout/stderr for output)
-- Exit code correctness (0 for non-blocking, non-zero only when intentionally blocking)
+- Exit code correctness. Two valid blocking protocols for Stop/PreToolUse hooks:
+  (a) **exit 2 + reason on stderr** — legacy, still supported
+  (b) **exit 0 + JSON `{"decision": "block", "reason": "..."}` on stdout** — modern; this is what `log-reminder.py` uses and it works correctly
+  Non-blocking hooks always exit 0. PreCompact hooks MUST exit 0 (stdout is discarded by the harness — use stderr for diagnostics)
 - `from __future__ import annotations` for Python 3.8+ compatibility
 - Correct field names from hook input schema (`source` not `type` for SessionStart)
 - PreCompact hooks print to stderr (stdout is ignored)
@@ -76,6 +79,16 @@ Common false alarms to watch for:
 - Quarto callout `## Title` inside `:::` divs — this is standard syntax, NOT a heading bug
 - `allowed-tools` linter warning — known linter bug (Claude Code issue #25380), field IS valid
 - Counts in old session logs — these are historical records, not user-facing docs
+- Counts in `CHANGELOG.md` under past version headings — those are snapshots; do NOT update
+- `log-reminder.py` outputting `{"decision": "block"}` with `sys.exit(0)` — this IS the modern Claude Code Stop-hook block protocol, NOT a bug
+
+**Count drift specifically: search for every phrasing variant.** A common failure mode is that `replace_all` on one phrasing (e.g., `"26 skills"`) misses sibling phrasings in the same repo. When checking counts, grep for ALL of:
+- `"N skills"`, `"N skill "` (with space)
+- `"N slash commands"`
+- `"N specialized"` (as in "N specialized agents")
+- `"template's N"` (informal count in prose)
+- Commas/conjunctions: `"skills,"` vs `"skills, and"` are treated as different strings by `replace_all`
+Verify zero matches for the OLD number across the whole tree before declaring clean.
 
 ### PHASE 3: Fix All Issues
 
