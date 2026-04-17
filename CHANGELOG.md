@@ -6,6 +6,184 @@ If you have forked this template, see the **Upgrading** section at the bottom fo
 
 ---
 
+## v1.7.0 — 2026-04-16
+
+A **discipline-patterns** minor release. Additive infrastructure for anti-drift (summary-parity) and anti-hallucination (Post-Flight Verification / Chain-of-Verification). Full details below; no breaking changes for forks.
+
+### Added — Post-Flight Verification (Chain-of-Verification)
+
+Mirror of v1.6.0's Pre-Flight Reports, at the output side. Where Pre-Flight proves inputs were read before work, Post-Flight proves factual claims hold after drafting — before the skill returns to the user. Adapted from **Dhuliawala et al. 2023, "Chain-of-Verification Reduces Hallucination in Large Language Models" ([arXiv:2309.11495](https://arxiv.org/abs/2309.11495))**. The core CoVe idea — answer verification questions in a context that does NOT contain the original draft — is architecturally enforced here via `context: fork` on the verifier agent.
+
+- **`.claude/rules/post-flight-verification.md`** — new path-scoped rule. Defines the 4-step CoVe protocol (draft → extract claims → generate verification questions → answer independently in fresh context → reconcile). Scoped to skills that generate factual claims. Fail-closed: if the verifier errors or times out, the draft is surfaced as provisional rather than shipped silently. Opt-out via `--no-verify`.
+- **`.claude/agents/claim-verifier.md`** — new forked agent. Never sees the draft (enforced by `context: fork` at the Task boundary). Receives only: claims, verification questions, source-material pointers. Uses `Read`, `Grep`, `Glob`, `WebFetch`, `WebSearch`, `Bash`. Returns a structured verification report (PASS / PARTIAL / FAIL per claim, with evidence quotes + source locations).
+- **`.claude/skills/verify-claims/`** — new user-facing skill. Runs Post-Flight on any draft the user hands to it (a `.md`, `.qmd`, `.tex`, `.txt` file). Accepts `--source <path-or-url>` to point at source material. Callable directly by users or spawned by other skills via `Task`.
+- **Four skill integrations** — `/lit-review`, `/research-ideation`, `/respond-to-referees`, `/review-paper` (novelty probe in `--peer` mode). Each now runs Post-Flight internally before returning. Skip conditions documented per skill (e.g., `--no-verify`, user pre-verifies).
+
+Rationale: `/lit-review` citations from WebSearch were hallucination-prone (already flagged in SKILL.md); `/research-ideation` negative-literature claims (e.g., "no prior work studies X") and dataset-structure claims are classic hallucination vectors; `/respond-to-referees` "we added X on page Y" claims can be wrong or out-of-date after revision; `/review-paper --peer` editor novelty probe depends on WebSearch.
+
+### Added — anti–whack-a-mole rule (from earlier in v1.7.0 cycle)
+
+- **`.claude/rules/summary-parity.md`** — path-scoped rule preventing surgical word-level fixes on summary paragraphs from introducing new drift elsewhere in the same paragraph. Triggers on CHANGELOG ledes, README taglines, PR `## Summary` blocks, skill/rule/agent frontmatter `description` fields, guide section abstracts, MEMORY.md `[LEARN]` headlines. Core heuristic: two review-bot flags on the same paragraph = rewrite structurally (abstract up), don't patch. Motivated by 3 consecutive Copilot findings on the v1.6.1 CHANGELOG opening (PRs #88–#90), each surgical fix introducing a new drift elsewhere.
+
+### Added — audit learnings
+
+- **`MEMORY.md`** new `[LEARN:audit]` entries capturing the whack-a-mole anti-pattern (summary-parity) and the CoVe vs critic-fixer vs cross-artifact distinction (three complementary verification mechanisms at three different architectural levels). Future sessions inherit both lessons on fresh context.
+
+### Added — guide coverage
+
+- `/verify-claims` and the new `claim-verifier` agent added to the guide's "All Skills" / "All Agents" tables. `post-flight-verification.md` and `summary-parity.md` added to "All Rules." Pre-existing gap in the rules table closed as well: `content-invariants.md` and `cross-artifact-review.md` were on disk but missing from the table; now listed. Path-scoped rule callout updated (16 → 20 path-scoped rules total).
+
+### Changed — counts
+
+- Skills 27 → 28 (`/verify-claims`). Agents 13 → 14 (`claim-verifier`). Rules 22 → 24 (`summary-parity.md` + `post-flight-verification.md`). Hooks unchanged at 6. Surface-sync gate propagates the new counts across all 6 monitored surfaces (README, CLAUDE.md, guide `.qmd` + `.html`, `docs/index.html`, `docs/workflow-guide.html`, `templates/skill-template.md`, `/commit` SKILL internal example).
+
+### Changed — drift-proofing the v1.6.1 CHANGELOG lede (applied the new summary-parity rule)
+
+- Rewrote the v1.6.1 opening paragraph abstraction-first ("No breaking changes. No new directories were added to `.claude/`; existing infrastructure was revised …"). First test of the new summary-parity rule on an existing entry. GitHub release notes for v1.6.1 synced to match.
+
+### Governance note
+
+v1.7.0 establishes the **discipline-pattern trilogy**:
+
+1. **v1.6.0 Pre-Flight** (input discipline) — inputs were read before work.
+2. **v1.6.1 summary-parity** (framing discipline) — summaries don't drift from bodies.
+3. **v1.7.0 Post-Flight** (output discipline) — factual claims hold before work ships.
+
+All three share a shape: **fail-closed, structured output block, honest fallbacks**. All three address classes of bugs a human reviewer would catch but the agent loop should catch earlier.
+
+---
+
+## v1.6.1 — 2026-04-16
+
+A **framing honesty + hook friction** patch release. No breaking changes. No new directories were added to `.claude/`; existing infrastructure was revised to address two classes of issue surfaced by a multi-round audit:
+
+1. **Claim-vs-reality drift:** v1.6.0 docs and rules described the "orchestrator" as if it were a repo-wide daemon that activates automatically after plan approval. In reality, the 6-step loop (IMPLEMENT → VERIFY → REVIEW → FIX → RE-VERIFY → SCORE) is a **pattern** implemented by specific skills (`/commit`, `/qa-quarto`, `/review-paper --adversarial`, `/slide-excellence`, `/create-lecture`, `/data-analysis`, `/review-paper --peer`). Plan approval does NOT trigger an auto-loop. Similarly, quality thresholds are **advisory inside `/commit`**, not enforced by a repo-wide git pre-commit hook.
+
+2. **Hook blocking fatigue:** the Stop hook `log-reminder.py` used `{"decision": "block"}` to force session-log creation. Effective for discipline, disruptive for autonomous flows. Now exits 0 with stderr-only advisories.
+
+### Changed — honest framing
+
+- **`.claude/rules/orchestrator-protocol.md`** rewritten: opens with "This rule describes the contract that skills implement. The 6-step loop is a *pattern*, not a runtime." Adds a skill-by-skill implementation table (which skill covers which steps; notes where auto-fixing happens and where it doesn't). "Just Do It" mode clarified to explicitly NOT authorize commits on its own — `/commit` invocation is still required.
+- **`.claude/rules/quality-gates.md`** renamed to **"Quality Review & Scoring Rubrics"** in practice (header kept for URL stability). Opens with an advisory-framing callout: enforcement is by the `/commit` skill only (halt + ask to override); a direct `git commit` bypasses the review.
+- **`.claude/rules/cross-artifact-review.md`** clarifies that detection is **pattern-based** (`\input{scripts/...}` / `%% source:` / filename matches). If the manuscript has none of those signals, nothing auto-invokes — and `--no-cross-artifact` is a no-op. Removed a reference to an unimplemented `--with-scripts` forcing flag.
+- **`.claude/rules/beamer-quarto-sync.md`** adds a **precedence-with-SSOT** section for the case where the Quarto file has manual post-translation edits: Beamer remains authoritative; presentation-only divergence (HTML-specific callouts) is allowed; structural drift is a bug.
+- **`guide/workflow-guide.qmd`** 4 sections rewritten: "The Orchestrator" → "A Pattern, Not a Daemon"; "Quality Scoring" now advisory; the "Skills vs Orchestrator" callout acknowledges both paths invoke the pattern inside a skill. Removed 5 occurrences of "automatic orchestrator" overselling across the document.
+- **`README.md`** contractor-mode framing updated: "runs the orchestrator pattern internally" instead of "runs autonomously." Quality Review section adds an explicit framing-honesty note: "advisory at the harness level — if you bypass the skill, you bypass the review."
+- **`docs/index.html`** landing-page bullets reworded: "Contractor mode via skills" (not "Contractor mode orchestrator"), quality-scoring bullet describes halt-and-override inside `/commit`.
+- **`CLAUDE.md`** Quality Thresholds table title now reads "(advisory)" with a one-line footnote clarifying `/commit`-only enforcement.
+
+### Changed — hook friction relief
+
+- **`.claude/hooks/log-reminder.py`** no longer blocks. Both block-return branches (no-log-exists and 15-response-counter) converted to stderr-only advisories. `THRESHOLD` raised from 15 → 50. Docstring updated to match the new semantics. The old blocking behavior was effective but disrupted `/loop` and batched-fix flows — stderr reminders preserve the nudge without halting execution.
+- **`.claude/hooks/verify-reminder.py`** throttle bumped from 60s → 300s (5 minutes). Same reminder, less noise during iterative `.tex` / `.qmd` / `.R` edits.
+
+### Added — orphan wiring + skill disambiguation
+
+- **`templates/decision-record.md`** (v1.6.0 addition) now wired into `/interview-me`: when the researcher explicitly chooses among alternatives during an interview (e.g. DiD vs IV vs RDD, admin vs survey data), the skill produces an ADR alongside the research spec. Skipped when there's a single uncontested path.
+- **Decision trees** added to the top of `/review-paper`, `/seven-pass-review`, and `/slide-excellence` SKILL.md files. Users can now pick the right skill at a glance: review-paper = most drafts; seven-pass = submission-ready / R&R; slide-excellence = slides; plus pointers to single-lens skills.
+- **`.claude/agents/domain-reviewer.md`** and **`domain-referee.md`** both prefixed with a scope-disambiguation block. `domain-reviewer` is the general (not disposition-primed) substance reviewer used by `/slide-excellence` and `/seven-pass-review`. `domain-referee` is the disposition-primed variant used by `/review-paper --peer`. Same domain expertise, different calibration.
+- **`.claude/rules/r-code-conventions.md`** adds **Section 8: Numerical Discipline** with the project epsilon (`eps <- 1e-12`) for CDF clamping plus 7 headline rules, cross-referenced to `r-reviewer` Category 11. The checklist gains a "numerical discipline" row.
+
+### Added — documentation
+
+- **`TROUBLESHOOTING.md`** +5 sections for v1.5/v1.6 features:
+  - **Permissions / bypass / statusline** (6-layer stack diagnosis, why `/permission-check` gates host-global reads, statusline parse-failure recovery)
+  - **Peer-review pipeline** (missing journal profile, cloned referee reports, R&R continuation chain breaks)
+  - **Surface-sync gate** (count drift resolution, adding a new skill breaks the gate by design)
+  - **Pre-Flight Reports** (fail-closed semantics, first-lecture fallback in `/create-lecture`)
+  - **Decision records** (where to save, gitignore behavior)
+- **`README.md`** Quick Start adds two callouts: Python/R/markdown-only users can skip XeLaTeX/Quarto; `MEMORY.md` vs `personal-memory.md` distinction introduced early (was previously session-2 discovery only).
+- **`MEMORY.md`** +6 new `[LEARN]` entries: framing (orchestrator is pattern, quality gates advisory, cross-artifact pattern-based), dogfooding (empty `quality_reports/` dirs is a red flag — Stop hook caught it mid-session), audit (claim-vs-reality is the highest-ROI lens for a governance-heavy template repo). Template inventory refreshed from 6 → 10 files + `tikz-snippets/`.
+- **`guide/workflow-guide.qmd`** "All Skills" table adds `/seven-pass-review` and `/permission-check` (were missing).
+
+### Fixed — review-driven polish (from Copilot + Codex on PR #87)
+
+- **Broken anchor:** `r-code-conventions.md` linked to `#category-11-numerical-discipline`, but the actual heading in `r-reviewer.md` is `### 11. NUMERICAL DISCIPLINE`. Dropped the anchor, references by name.
+- **Unimplemented flag:** `beamer-quarto-sync.md` advised running `/translate-to-quarto --diff [file]`, but the skill has no `--diff` option. Replaced with "regenerate into a scratch path, diff manually."
+- **Contradictory scope:** `domain-reviewer.md` claimed "slides only" while also stating "used by `/seven-pass-review`" (a manuscript skill). Reframed as general reviewer for both artifacts; `domain-referee.md` is the disposition-primed manuscript variant.
+- **Stale docstring:** `log-reminder.py` docstring described blocking behavior after the code had been converted to advisory. Updated.
+- **Stale docstring:** `verify-reminder.py` said "within 60s" after throttle was bumped to 5 min. Updated.
+- **Daemon phrasing in TROUBLESHOOTING:** `sessionInfo.txt` fix referenced "the orchestrator" as if it were a daemon. Points at `00_run_all.R` via `/data-analysis` or the user's pipeline runner instead.
+- **`/context-status` regression averted:** intermediate commit had unwired `context-monitor.py` from `PostToolUse`, but `/context-status` reads the cache that hook writes. Codex flagged the dependency; the hook was re-wired before merge.
+- **CHANGELOG upgrade example:** pin example updated from `v1.3.0` (2026-04-13) to `v1.6.0` (2026-04-15) to reflect current state.
+- **Guide frontmatter date:** stale `2026-03-20` → `2026-04-15` (v1.6.0 release date).
+- **v1.6.0 Pre-Flight claim:** CHANGELOG line about "fail-closed if inputs can't be read" now acknowledges `/create-lecture`'s first-lecture fallback (documented exception, not a contradiction).
+
+### Governance note
+
+v1.6.1 establishes the **"claim-vs-reality" audit lens** as a first-class review category going forward. When a template repo oversells itself, the gap is the first thing forkers notice when reality bites. The [LEARN:audit] entry in MEMORY.md captures this: for any governance-heavy feature, the audit question "is the claim mechanically enforced, or is it prose?" catches more real bugs than skill/doc consistency checks.
+
+The Stop hook's conversion from blocking to advisory is a **philosophical tradeoff**: discipline vs. autonomy. v1.6.0 chose discipline (block until the user complies); v1.6.1 chooses autonomy (nudge but don't halt) because the blocking version disrupted `/loop`, batched audits, and autonomous-ship flows. The nudge survives in stderr, the discipline now depends on the user's own habit. If a future release finds this has quietly caused session-log neglect, the blocking form can be restored behind an opt-in setting.
+
+### Verification
+
+Pre-merge deep audit launched 4 parallel agents (guide content, hook code, skills/rules consistency, cross-doc). 1 genuine finding (stale docstring), 1 false alarm (log-reminder fail-open is correct). Fixed on branch before merge.
+
+Surface-sync gate: 27 skills / 13 agents / 22 rules / 6 hooks matched across 6 surfaces. `quality_score.py` on `guide/workflow-guide.qmd`: 100/100.
+
+---
+
+## v1.6.0 — 2026-04-15
+
+A **discipline-layer release**: the template's infrastructure now actively catches the class of bugs that produced reviewer-driven fix PRs in v1.5.x. Also adds two observability/diagnosis tools (statusline, `/permission-check`), doubles the referee pet-peeve pools, and ports three quality patterns from clo-author (Pre-Flight Reports, Content Invariants, Numerical Discipline). No breaking changes.
+
+### Added — observability + diagnostics
+
+- **`.claude/scripts/statusline.sh`** — always-visible mode badge (`[BYPASS] / [PLAN] / [AUTO-EDIT] / [PROMPT]`) + model + git branch. Renders on every turn. Wired via `.claude/settings.json` `statusLine`. Parses session JSON in a single `python3` invocation (per-turn perf).
+- **`.claude/skills/permission-check/`** — new `/permission-check` skill. Read-only diagnostic: reads repo-local settings layers auto, requires explicit user confirmation before reading host-global (`~/.claude/settings.json`, VSCode user settings). Redacts unrelated keys. Surfaces drift across the 6-tier permission stack (VSCode user / workspace / CLI user / project / project-local / in-session runtime).
+- **Six-Layer Permission Stack + Plan→Bypass Handoff** in the guide. Troubleshooting checklist for "prompts fire despite bypass." Explicit `callout-warning` that plan approval is NOT an enforcement boundary — exiting plan mode returns to `defaultMode` with full bypass authority.
+
+### Added — surface-sync gate
+
+- **`scripts/check-surface-sync.py` + `scripts/check-surface-sync.sh`** — cross-document count consistency gate. Counts `.claude/{skills,agents,rules,hooks}` on disk, scans 6 surfaces (README, CLAUDE.md, guide .qmd + .html, docs/index.html, skill-template) for count assertions using compound regex patterns (avoids false positives on unrelated phrases like "3 parallel agents" or attribution lines). Fails closed on drift — no `"commit anyway"` override. Wired into `/commit` as Step 0b.
+- Addresses the systemic drift pattern that produced PRs #70, #76, #78 in v1.5.x (adding a skill updated `.claude/` but left stale counts in prose).
+
+### Added — referee quality polish
+
+- **Expanded editor pet-peeve pools:** 25 → 29 critical peeves (added: notation drift, seed-dependent results, covariate balance absent, overlap/common-support missing); 20 → 25 constructive peeves (added: "what this paper does not show" paragraph, raw-data figures, alternative specs, notation tables, careful attribution). Now exceeds clo-author v3.1 baseline (27/24).
+- **`quality_reports/decisions/` + `templates/decision-record.md`** — ADR-style decision records. Template with Status / Problem / Options considered / Decision + rationale / Consequences / Rejected alternatives. Gitignored like plans/specs.
+
+### Added — discipline patterns (ported from clo-author, adapted)
+
+- **Pre-Flight Reports** in `/data-analysis`, `/create-lecture`, `/review-paper --peer`. Each skill now requires a structured output block proving inputs were read before doing work (dataset fields, project conventions, notation registry checks, journal profile, cross-artifact status). Fail-closed if inputs can't be read, **with a documented first-lecture fallback** in `/create-lecture` (proposes a minimal knowledge base when the template is still empty, to avoid deadlocking fresh forks).
+- **`.claude/rules/content-invariants.md`** — new rule, path-scoped to `Slides/**/*.tex`, `Quarto/**/*.qmd`, `Quarto/**/*.scss`, `Preambles/header.tex`, `scripts/R/**/*.R`. Defines **INV-1 through INV-12**: palette sync, Beamer↔Quarto notation parity, Quarto CSS override contract, TikZ-as-SVG, single bibliography, no `\pause`, max 2 boxes per slide, motivation-before-formalism, `set.seed` once, relative paths only, transparent-bg figures, project theme on all plots. Critics can now cite invariants by number.
+- **`r-reviewer` agent — category 11 "Numerical Discipline":** no float `==`, CDF clamping to open interval with named epsilon (not `[0,1]` — exact 0/1 to `qnorm` yields ±Inf), integer literals for counts (`1L`), pre-allocated vectors, deterministic bootstrap seeding, explicit `na.rm`, no `T`/`F` shorthands.
+
+### Changed — skill trigger descriptions
+
+- **17 `.claude/skills/*/SKILL.md` frontmatter rewrites** for reliable auto-invocation. Verb+object + "Use when: …" trigger phrases + disambiguation from sibling skills (e.g., `/interview-me` explicitly says NOT for lit review, pairs with `/research-ideation`). Follows the `deep-audit` gold-standard pattern. Cold-prompt auto-invocation is now reliable for `/commit`, `/deploy`, `/proofread`, `/data-analysis`, and siblings.
+- **`commit` skill triggers tightened** after Codex flagged vague end-of-task phrases as risky: now only explicit commit intent ("commit", "ship it", "push this", "open a PR", "merge to main", "let's commit this"). Removed "wrap up these changes" and end-of-task-signal trigger.
+- **Guide: "Writing Effective Trigger Descriptions"** expanded with the 3-part pattern (verb+object → "Use when:" phrases → disambiguation), A/B rewrite example, and a pre-ship checklist.
+
+### Changed — documentation
+
+- **Counts:** skills 26 → 27 (added `/permission-check`), rules 21 → 22 (added `content-invariants`). Agents and hooks unchanged. Synced across all 6 surfaces via the new sync gate.
+- **Guide re-rendered** with the new sections (statusline, permission stack, Plan→Bypass handoff, expanded trigger-description guidance). `docs/workflow-guide.html` synced.
+
+### Fixed — systemic quality during development
+
+This release absorbed an unusual volume of reviewer-driven fixes from Codex and Copilot. Representative samples:
+
+- **Count drift:** a single `replace_all` on `"26 skills"` missed `"26 skills, and 21 rules"` (extra "and"), missed `"26 slash commands"`, missed `"template's 26"`. The deep-audit skill now documents the phrasing-variant trap; the surface-sync gate prevents the class of bug.
+- **Stop-hook block protocol:** some audit guidance implied non-zero exit codes are required to block. Actually, modern Claude Code accepts BOTH `exit 2 + stderr reason` (legacy) AND `exit 0 + JSON {"decision":"block","reason":"..."}` on stdout (modern — what `log-reminder.py` uses). Deep-audit skill now documents both protocols explicitly so future audit agents don't re-flag `log-reminder.py`.
+- **Statusline parse-failure fallback:** parse error emitted `cwd="."` which wasn't empty, bypassing the `pwd` fallback. Fixed to emit empty third line and tightened the bash guard to treat `"."` as invalid.
+- **`notify.sh` robustness:** best-effort notification now fails open on missing `jq` AND on malformed JSON input (defaults before jq attempt, silent stderr on parse).
+- **Plan→Bypass framing:** initial guide text said "combines safety and prompt-free execution." Codex correctly flagged this as overselling — plan approval doesn't bind later execution to the approved plan. Reworded as "review-before-execute convenience" with a callout warning.
+- **`/permission-check` privacy boundary:** first draft read `~/.claude/` and VSCode user settings unconditionally on ambiguous prompts like "why am I getting prompts?". In a shared/corporate environment this could leak host-global config. Restructured into Phase A (repo-local, auto) + Phase B (host-global, explicit user confirmation + key redaction).
+- **CDF clamping math bug** in the new Numerical Discipline checklist: initial draft said `pmin(1, pmax(0, p))` but exact 0/1 to `qnorm` yields ±Inf. Fixed to open interval with named `eps`.
+- **Content-invariants path globs:** initial frontmatter used bare directories; other rule files use quoted glob patterns. Aligned.
+- **Seed format conflict** in `/data-analysis`: Phase 1 required YYYYMMDD (per `r-code-conventions.md`) but the template example still showed `set.seed(42)`. Made self-consistent.
+
+### Attribution
+
+The discipline patterns in this release (Pre-Flight Reports, Content Invariants, Numerical Discipline rules) are **ported from [Hugo Sant'Anna's clo-author](https://github.com/hugosantanna/clo-author) with adaptation to our lecture-shaped surface**. Hugo's v4.1.x has moved to a 10-verb skill consolidation + full paper-type branching we deliberately didn't port (doesn't fit our primary artifact). Invariants have lecture-specific codes (INV-1..INV-12) rather than clo-author's paper-centric ones.
+
+### Governance note
+
+v1.6.0 establishes the "discipline layer" as a first-class template concern. The surface-sync gate makes count drift a pre-commit error, not a reviewer catch. The statusline + `/permission-check` turn permission debugging from detective work into a 2-second glance. The Pre-Flight Report pattern makes "agent hallucinated your variable names" a category of failure that can't happen silently.
+
+---
+
 ## v1.5.0 — 2026-04-14
 
 ### Added — Simulated peer review
@@ -201,4 +379,4 @@ git merge upstream/main           # or: git rebase upstream/main
 
 Files you almost certainly customized — `CLAUDE.md`, `Bibliography_base.bib`, `Quarto/theme-template.scss`, your lecture files in `Slides/` and `Quarto/`, `.claude/agents/domain-reviewer.md` — may produce merge conflicts. Resolve in favor of your customizations; pull only the infrastructure improvements.
 
-To pin to a specific version: `git checkout v1.3.0` (latest as of 2026-04-13).
+To pin to a specific version: `git checkout v1.6.0` (latest as of 2026-04-15).

@@ -36,7 +36,7 @@ Cross-session context lives in [MEMORY.md](MEMORY.md); past plans, specs, and se
 ├── Quarto/                      # RevealJS .qmd files + theme
 ├── docs/                        # GitHub Pages (auto-generated)
 ├── scripts/                     # Utility scripts + R code
-├── quality_reports/             # Plans, session logs, merge reports
+├── quality_reports/             # Plans, session logs, merge reports, decision records
 ├── explorations/                # Research sandbox (see rules)
 ├── templates/                   # Session log, quality report templates
 └── master_supporting_docs/      # Papers and existing slides
@@ -61,19 +61,24 @@ python scripts/quality_score.py Quarto/file.qmd
 
 # Palette sync (LaTeX ↔ SCSS)
 ./scripts/check-palette-sync.sh
+
+# Surface-count sync (README ↔ CLAUDE.md ↔ guide ↔ landing page)
+./scripts/check-surface-sync.sh
 ```
 
 **Palette contract:** color names in `Preambles/header.tex` must match SCSS variables in `Quarto/theme-template.scss`. See [`Preambles/README.md`](Preambles/README.md).
 
 ---
 
-## Quality Thresholds
+## Quality Thresholds (advisory)
 
-| Score | Gate | Meaning |
+| Score | Checkpoint | Meaning |
 |-------|------|---------|
 | 80 | Commit | Good enough to save |
 | 90 | PR | Ready for deployment |
 | 95 | Excellence | Aspirational |
+
+Enforced by `/commit` (halts + asks for override); not enforced by a git pre-commit hook.
 
 ---
 
@@ -108,6 +113,7 @@ python scripts/quality_score.py Quarto/file.qmd
 | `/deep-audit` | Repository-wide consistency audit |
 | `/permission-check` | Diagnose permission layers when prompts fire unexpectedly |
 | `/seven-pass-review` | Seven-pass adversarial manuscript review (parallel forked subagents) |
+| `/verify-claims [file]` | Chain-of-Verification fact-check (forked verifier, fresh context) |
 
 ---
 

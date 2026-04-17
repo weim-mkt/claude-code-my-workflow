@@ -39,7 +39,7 @@ When a mistake is corrected, append a `[LEARN:category]` entry below.
 
 [LEARN:files] Specifications go in `quality_reports/specs/YYYY-MM-DD_description.md`, not scattered in root or other directories. Maintains structure.
 
-[LEARN:files] Templates belong in `templates/` directory with descriptive names. Currently have: session-log.md, quality-report.md, exploration-readme.md, archive-readme.md, requirements-spec.md, constitutional-governance.md.
+[LEARN:files] Templates belong in `templates/` directory with descriptive names. Currently have: session-log.md, quality-report.md, exploration-readme.md, archive-readme.md, requirements-spec.md, constitutional-governance.md, decision-record.md (v1.6.0), journal-profile-template.md (v1.5.0), response-to-referees.md, skill-template.md, plus `tikz-snippets/` directory.
 
 ## Constitutional Governance
 
@@ -70,3 +70,55 @@ When a mistake is corrected, append a `[LEARN:category]` entry below.
 [LEARN:meta] Dogfooding principles must be enforced: plan-first, spec-then-plan, quality gates, session logs → we follow our own guide.
 
 [LEARN:meta] Template development work (building infrastructure, docs) doesn't create session logs in quality_reports/ → those are for user work (slides, analysis), not meta-work. Keeps template clean for users who fork.
+
+## Drift Prevention
+
+[LEARN:drift] `replace_all` on one phrasing (e.g., `"26 skills"`) misses sibling phrasings — `"26 skills, and 21 rules"` (extra "and"), `"26 slash commands"`, `"template's 26"`, `"N skills on day one"` (prose). Count drift hit us 3 times in v1.5.x (PRs #70, #76, #78). Solution: `scripts/check-surface-sync.py` with compound regex patterns as a pre-commit gate. Adding a new phrasing to documentation requires adding a matching regex to the script, otherwise it won't be caught.
+
+[LEARN:drift] Guard against false positives when scanning for template counts: `"3 parallel agents"`, `"17 specialized agents"` (clo-author attribution), `"start with 2-3 skills"` are all legitimate non-template uses of `N + category` phrases. Use compound patterns requiring multiple template-specific tokens on the same line.
+
+## Claude Code Hooks
+
+[LEARN:hooks] Stop-hook block protocol has TWO valid forms: (a) legacy — `exit 2` + reason on stderr; (b) modern — `exit 0` + JSON `{"decision":"block","reason":"..."}` on stdout. `log-reminder.py` uses the modern form. Audit agents unfamiliar with the modern protocol will flag this as "should exit 2" — false alarm. Documented in `/deep-audit` skill's false-alarm list.
+
+[LEARN:hooks] `initialPermissionMode` in VSCode settings only fires at **session start**. Mid-session mode toggles (via `Shift+Tab` or `/permission-mode`) override the file settings until session end. The 6-tier permission stack: VSCode user / workspace / CLI user / project / project-local / in-session runtime — the last is authoritative. "Prompts fire despite bypass config" is almost always a stale session, not a settings bug.
+
+## Plan→Bypass Framing
+
+[LEARN:safety] Do NOT frame Plan→Bypass as a "safety boundary" or "safety guarantee." Plan approval gives you a chance to review the APPROACH before execution, but exiting plan mode returns the session to `defaultMode` (bypassPermissions), at which point any tool call runs under the full allowlist. Frame as "review-before-execute convenience." If a user needs a real enforcement boundary, they should keep `defaultMode: "default"` and approve each high-risk tool individually.
+
+## Privacy in Diagnostic Skills
+
+[LEARN:privacy] Diagnostic skills that read host-global config (e.g., `~/.claude/`, VSCode user settings) must require **explicit user confirmation** before crossing the repo boundary — especially in template repos that get forked. Phase the skill: repo-local auto, host-global opt-in with key redaction. Codex correctly flagged this pattern as a template-adopter privacy risk in PR #75.
+
+## Claim-vs-Reality Framing
+
+[LEARN:framing] The "orchestrator" is a **pattern** implemented by specific skills (`/commit`, `/qa-quarto`, `/review-paper --adversarial`, `/slide-excellence`, `/create-lecture`, `/data-analysis`, `/review-paper --peer`), not a runtime daemon. Plan approval does NOT auto-trigger the 6-step loop. User invokes a skill; skill runs the loop internally. Docs that say "orchestrator activates automatically after plan approval" are misleading — catch them in review.
+
+[LEARN:framing] "Quality gates" is overselling when the only enforcement is inside `/commit` skill (halt-and-ask, not block). A direct `git commit` bypasses the review. Use "quality review" in docs or add an "(advisory)" qualifier. Hard enforcement requires an actual git pre-commit hook — document the gap honestly.
+
+[LEARN:framing] Cross-artifact review is **pattern-based detection**, not universal auto-invocation. If the manuscript has no `\input{scripts/...}` signals, no cross-artifact work happens even without `--no-cross-artifact`. Document detection signals explicitly.
+
+## Dogfooding Gaps Found in Round-1 Audit (2026-04-16)
+
+[LEARN:dogfooding] Empty `quality_reports/plans/`, `specs/`, `session_logs/` directories are a red flag — they mean the repo claims to enforce dogfooding rules that nobody is following. Stop hook on `log-reminder.py` did catch the missing session log this session, which validates the hook's value. Plan-first has no equivalent automation.
+
+[LEARN:audit] "Claim-vs-reality" is the highest-ROI audit lens for a governance-heavy template repo. More valuable than skill-consistency or doc-drift checks because it surfaces where the template oversells itself — the exact thing forkers will discover and call out.
+
+[LEARN:audit] Whack-a-mole anti-pattern on summary paragraphs: when Copilot/Codex flag a summary paragraph, surgically fixing the flagged phrase almost always introduces a new drift elsewhere in the same paragraph (observed 3× in a row on the v1.6.1 CHANGELOG opening, PRs #88–#90). Rule: two review-bot flags on the same paragraph = rewrite structurally (abstract up, remove enumeration), don't patch word-by-word. Prefer "no new directories on disk" over "no new skills, rules, or hooks." See `.claude/rules/summary-parity.md`.
+
+## Verification Architecture (three complementary patterns)
+
+[LEARN:pattern] Verification in this repo now operates at three architectural levels, each addressing a different failure mode. Do NOT collapse them — they are complementary, not redundant:
+
+1. **Critic-fixer loop** (`/qa-quarto`, `/review-paper --adversarial`) — **two agents, serial** — one reads the artifact and flags issues, the other applies fixes; loop until APPROVED. Best for **presentation + structural** bugs (Beamer↔Quarto parity, manuscript completeness). Agents see the full artifact; adversarial tension comes from role assignment.
+
+2. **Cross-artifact review** (`/review-paper` + `/review-r` + `/audit-reproducibility`) — **horizontal dependency traversal** — a manuscript's claims depend on scripts' outputs, so the manuscript reviewer spawns script reviewers and reproducibility checkers alongside the paper review. Best for **paper ↔ code consistency** (ATTs, coefficients, N match the outputs that produced them).
+
+3. **Post-Flight Verification / CoVe** (`/verify-claims` + `claim-verifier` agent, v1.7.0) — **single agent, fresh-context fork** — the verifier has never seen the draft; it answers verification questions from the source material alone, using `context: fork` to architecturally enforce independence. Best for **factual hallucination** (fabricated citations, wrong dataset fields, misattributed findings). Adapted from Dhuliawala et al. 2023 ([arXiv:2309.11495](https://arxiv.org/abs/2309.11495)).
+
+The key insight: each pattern enforces independence differently. Critic-fixer uses role tension; cross-artifact uses dependency graph traversal; CoVe uses context isolation. A skill that needs all three (e.g., `/review-paper --peer`) invokes them at different phases.
+
+[LEARN:pattern] Post-Flight Reports (v1.7.0) are the output-side twin of Pre-Flight Reports (v1.6.0). Pre-Flight proves inputs were read; Post-Flight proves claims hold. Both use structured output blocks, fail-closed fallbacks, and explicit opt-outs. Together with summary-parity (v1.6.1), they form the **discipline-pattern trilogy**: input discipline + framing discipline + output discipline. When designing a new skill that generates text, ask: does it need all three?
+
+[LEARN:audit] Skill frontmatter `allowed-tools` must cover every tool the skill body invokes, but this is easy to miss — the body reads as English ("spawn the verifier via Task") while the frontmatter reads as a bureaucratic array. Caught on PR #92 when Codex + Copilot both flagged 4 skills that promised `Task` in the body but had no `Task` in `allowed-tools`. Runtime failure mode: tool-permission error, or silent bypass of the promised protocol. Deep-audit Agent 3 now includes this check explicitly. Sibling check: if rule X's `paths:` includes skill Y, confirm skill Y actually implements rule X's protocol (rule-vs-implementation drift is the same class of bug at a different layer).

@@ -9,6 +9,13 @@ allowed-tools: ["Read", "Grep", "Glob", "Write", "Edit", "Bash", "Task"]
 
 Produce a thorough, constructive review of an academic manuscript — the kind of report a top-journal referee would write.
 
+> **Which review skill do I want?**
+>
+> - **`/review-paper`** (this skill) — single comprehensive report, optional `--adversarial` critic-fixer loop, or `--peer <journal>` simulated peer-review pipeline. Best for **most drafts**.
+> - **`/seven-pass-review`** — seven independent lenses in parallel (abstract, intro, methods, results, robustness, prose, citations) then synthesized. Heavier (7× token cost). Best for **submission-ready drafts** or **R&R stage** where you need maximum coverage.
+> - **`/respond-to-referees`** — if you already have referee comments and need a response document, not another review.
+> - **`/slide-excellence`** — for lecture slides, not papers.
+
 **Input:** `$ARGUMENTS` — path to a paper (`.tex`, `.pdf`, or `.qmd`), or a filename in `master_supporting_docs/`. Optional flags:
 
 - `--adversarial` — critic-fixer loop (max 5 rounds).
@@ -306,6 +313,29 @@ After the loop ends, write `quality_reports/paper_review_[sanitized_name]_FINAL.
 Unless `--no-cross-artifact` is set, auto-invoke `/audit-reproducibility` on the manuscript + its outputs directory *first*. Any reproducibility FAIL becomes desk-reject-worthy evidence the editor can cite. See `.claude/rules/cross-artifact-review.md`.
 
 Reports: `quality_reports/cross_artifact_[paper]/reproducibility.md`.
+
+**Novelty-probe Post-Flight (new in v1.7.0).** The editor's novelty probe uses `WebSearch` to check whether the paper's contribution has been made before. WebSearch results can be hallucinated — fabricated prior work, misattributed findings, wrong years. Before the editor's desk review incorporates novelty-probe claims into its decision, those claims must pass Post-Flight Verification per [`.claude/rules/post-flight-verification.md`](../../rules/post-flight-verification.md):
+
+1. The editor collects novelty-probe claims (e.g., "Smith 2022 already showed this exact result").
+2. Spawn `claim-verifier` via `Task` with `subagent_type=claim-verifier` and `context=fork`, passing the claims + verification questions + candidate source URLs. Forked fresh context is the CoVe independence trick.
+3. Only verified claims are allowed into the desk-review narrative. Unverified claims are surfaced separately as "editor could not verify — manual check recommended" rather than presented as established prior work.
+
+Opt-out: `--no-novelty-check` already skips the probe entirely. If the probe runs, Post-Flight is mandatory.
+
+**Pre-Flight Report (required before Phase 1).** Before spawning the editor, output a Pre-Flight Report so the user can verify the inputs are read correctly:
+
+```markdown
+## Pre-Flight Report — /review-paper --peer
+
+**Manuscript:** [path] — [page count, last modified]
+**Target journal:** [JOURNAL_SHORT] → [full name from `.claude/references/journal-profiles.md`]
+**Journal profile loaded:** [yes/no; resolved from `.claude/references/journal-profiles.md`; key adjustments: e.g., "Identification 35 → 40"]
+**Cross-artifact scripts found:** [list referenced .R / .py / .do files]
+**Reproducibility status:** [PASS / FAIL from Phase 0] — [N of M claims within tolerance]
+**Round:** [fresh / r2 / r3 / stress]
+```
+
+If the manuscript path doesn't exist, the target journal isn't in `.claude/references/journal-profiles.md`, or a cross-artifact script is missing, stop and surface the issue before proceeding.
 
 ### Phase 1: Editor desk review
 

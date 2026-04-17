@@ -127,7 +127,25 @@ qs2::qs_save(model_fit, here::here("output", "descriptive_name.qs2"))
 - Long lines in non-mathematical code: minor penalty (-1 to -2 per line)
 - Long lines in documented mathematical sections: no penalty
 
-## 10. Code Quality Checklist
+## 10. Numerical Discipline
+
+See [`r-reviewer.md`](../agents/r-reviewer.md) Category 11 ("Numerical Discipline") for the full checklist. Headline rules:
+
+- **No float equality.** Never use `==` on doubles. Use `all.equal()` or `abs(a - b) < tol`.
+- **CDF clamping** to an OPEN interval. Exact 0 or 1 passed to `qnorm()` / `pbinom()` etc. produces `±Inf`. Project-wide epsilon:
+
+  ```r
+  eps <- 1e-12
+  p <- pmin(1 - eps, pmax(eps, p))   # now safe for qnorm(p)
+  ```
+
+- **Integer literals for counts.** `nrow <- 1000L` (not `1000`), `for (i in 1L:nL)` — avoids silent promotion.
+- **Pre-allocate vectors** before loops (`numeric(n)`, `vector("list", n)`), never grow with `c()`.
+- **Deterministic bootstrap seeding.** Set seed before the bootstrap, and if the bootstrap is nested, set per-replicate seeds as `seed_base + b`.
+- **Explicit `na.rm = TRUE/FALSE`.** Never rely on defaults for `mean()`, `sd()`, `sum()` on data with potential NAs.
+- **No `T` / `F`.** They're variables, not constants — write `TRUE` / `FALSE`.
+
+## 11. Code Quality Checklist
 
 ```
 [ ] renv initialized with pak backend
@@ -142,4 +160,5 @@ qs2::qs_save(model_fit, here::here("output", "descriptive_name.qs2"))
 [ ] Model objects cached with qs2::qs_save()
 [ ] Files read/written with UTF-8 encoding
 [ ] Comments explain WHY not WHAT
+[ ] Numerical discipline: no float ==, CDF clamping with eps, pre-allocated vectors
 ```
