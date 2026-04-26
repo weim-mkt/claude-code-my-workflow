@@ -10,7 +10,7 @@ Usage:
     python scripts/quality_score.py Quarto/Lecture6_Topic.qmd --summary
     python scripts/quality_score.py Quarto/*.qmd
     python scripts/quality_score.py Slides/Lecture01_Topic.tex
-    python scripts/quality_score.py scripts/R/Lecture06_simulations.R
+    python scripts/quality_score.py code/Lecture06_simulations.R
 """
 
 import sys
@@ -688,7 +688,7 @@ Examples:
   python scripts/quality_score.py Slides/Lecture01_Topic.tex
 
   # Score an R script
-  python scripts/quality_score.py scripts/R/Lecture06_simulations.R
+  python scripts/quality_score.py code/Lecture06_simulations.R
 
   # Summary only (no detailed issues)
   python scripts/quality_score.py Quarto/Lecture6.qmd --summary

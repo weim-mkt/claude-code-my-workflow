@@ -1,7 +1,7 @@
 ---
 name: audit-reproducibility
 description: Enforce the replication-protocol.md rule by cross-checking numeric claims in a manuscript against the actual R / Stata / Python outputs. Report PASS/FAIL per claim against tolerance thresholds. Use before submission and before releasing a replication package.
-argument-hint: "[manuscript path] [outputs-dir] (outputs-dir defaults to scripts/R/_outputs/)"
+argument-hint: "[manuscript path] [outputs-dir] (outputs-dir defaults to code/_outputs/)"
 allowed-tools: ["Read", "Grep", "Glob", "Write", "Bash", "Task"]
 effort: high
 ---
@@ -22,14 +22,14 @@ Compare numeric claims in a manuscript (point estimates, standard errors, p-valu
 ## Inputs
 
 - `$0` — path to the manuscript (`.tex`, `.qmd`, `.md`, `.pdf`). Required.
-- `$1` — path to the outputs directory. Defaults to `scripts/R/_outputs/`. Can be `_targets/objects/`, a Stata `.do`-file log directory, etc.
+- `$1` — path to the outputs directory. Defaults to `code/_outputs/`. Can be `_targets/objects/`, a Stata `.do`-file log directory, etc.
 
 ## Workflow
 
 ### Phase 0: Pre-flight
 
 1. Read [`replication-protocol.md`](../../rules/replication-protocol.md) for the tolerance thresholds currently in effect.
-2. Verify the outputs directory exists and is non-empty. If empty or stale (older than the manuscript), prompt the user to re-run their pipeline (e.g., `Rscript scripts/R/00_run_all.R`) before auditing.
+2. Verify the outputs directory exists and is non-empty. If empty or stale (older than the manuscript), prompt the user to re-run their pipeline (e.g., `Rscript code/00_run_all.R`) before auditing.
 3. Ensure a `sessionInfo.txt` or equivalent environment capture exists in the outputs dir.
 
 ### Phase 1: Extract claims from the manuscript
@@ -72,7 +72,7 @@ Record each extracted result:
 
 ```
 {
-  source: "scripts/R/_outputs/results.rds",
+  source: "code/_outputs/results.rds",
   lookup_key: "fit_main$coefficients['treated']",
   value: -1.628,
   uncertainty: 0.591,

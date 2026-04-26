@@ -4,7 +4,7 @@ paths:
   - "Quarto/**/*.qmd"
   - "Quarto/**/*.scss"
   - "Preambles/header.tex"
-  - "scripts/R/**/*.R"
+  - "code/**/*.R"
 ---
 
 # Content Invariants (INV-1 through INV-12)

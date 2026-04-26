@@ -12,10 +12,10 @@ A paper is not an island. Its claims depend on the code that produced them. Revi
 
 ```
 manuscript.tex ──cites──> Table 2
-Table 2        ──from──> scripts/R/_outputs/results.rds
-results.rds    ──by──> scripts/R/03_analyze.R
-03_analyze.R   ──uses──> scripts/R/_outputs/clean.rds
-clean.rds      ──by──> scripts/R/02_clean.R
+Table 2        ──from──> code/_outputs/results.rds
+results.rds    ──by──> code/03_analyze.R
+03_analyze.R   ──uses──> code/_outputs/clean.rds
+clean.rds      ──by──> code/02_clean.R
 02_clean.R     ──reads──> data/raw.csv
 ```
 
@@ -27,10 +27,10 @@ Applies when `/review-paper` runs on a manuscript that references analysis scrip
 
 Detection signals:
 
-- `\input{scripts/R/...}` or `\input{tables/...}`
-- `%% source: scripts/R/03_analyze.R` comments
-- Numeric claims in text (ATT, coefficients, N, p-values) **combined with** a sibling `scripts/R/` / `scripts/stata/` / `scripts/python/` directory
-- Table labels in the paper that match filenames under `scripts/*/\_outputs/`
+- `\input{code/...}` or `\input{tables/...}`
+- `%% source: code/03_analyze.R` comments
+- Numeric claims in text (ATT, coefficients, N, p-values) **combined with** a sibling `code/` directory
+- Table labels in the paper that match filenames under `code/_outputs/`
 
 Detection is intentionally conservative — a theory paper with no code should not trigger the protocol, even if it lives in a repo that has scripts for other work.
 
@@ -43,8 +43,8 @@ When `/review-paper` detects any of the above:
 Scan the manuscript for:
 
 - `\input{path}` commands (tables, figures pulled from files)
-- Line comments `%% from: scripts/...`
-- Table labels that match filenames in `scripts/R/_outputs/` (e.g., `Table:main_ATT` ↔ `results_main.rds`)
+- Line comments `%% from: code/...`
+- Table labels that match filenames in `code/_outputs/` (e.g., `Table:main_ATT` ↔ `results_main.rds`)
 
 Build a list of scripts that produced content in this paper.
 
@@ -54,7 +54,7 @@ For each identified R script, launch `/review-r` in a forked subagent (`context:
 
 ### 3. Auto-invoke `/audit-reproducibility`
 
-Run `/audit-reproducibility $manuscript scripts/R/_outputs/` once. Save to `quality_reports/cross_artifact_[paper]/reproducibility.md`.
+Run `/audit-reproducibility $manuscript code/_outputs/` once. Save to `quality_reports/cross_artifact_[paper]/reproducibility.md`.
 
 ### 4. Surface cross-artifact findings
 

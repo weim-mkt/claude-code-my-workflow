@@ -71,7 +71,7 @@ done
 # 4. Sync R scripts to docs/files/code/
 echo "Syncing R scripts..."
 mkdir -p "$DOCS_DIR/files/code"
-for rscript in "$REPO_ROOT/scripts/R/"*.R; do
+for rscript in "$REPO_ROOT/code/"*.R; do
     if [ -f "$rscript" ]; then
         echo "  Copying $(basename "$rscript")..."
         cp "$rscript" "$DOCS_DIR/files/code/"
