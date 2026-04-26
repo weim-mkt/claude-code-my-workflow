@@ -2365,7 +2365,7 @@ Claude Code supports **plugins** --- bundled collections of skills, agents, hook
 | Orchestrator Research | `orchestrator-research.md` | `*.R`, `explorations/` |
 | Exploration Folder | `exploration-folder-protocol.md` | `explorations/` |
 | Exploration Fast-Track | `exploration-fast-track.md` | `explorations/` |
-| Content Invariants | `content-invariants.md` | `.tex`, `.qmd`, `Preambles/`, `scripts/R/**` |
+| Content Invariants | `content-invariants.md` | `.tex`, `.qmd`, `Preambles/`, `code/**` |
 | Cross-Artifact Review | `cross-artifact-review.md` | `master_supporting_docs/`, `.tex`, `.qmd` |
 | Summary–Body Parity | `summary-parity.md` | `CHANGELOG.md`, `README.md`, `.qmd`, skill/rule/agent `.md` |
 | Post-Flight Verification | `post-flight-verification.md` | skills that generate factual claims (`/lit-review`, `/research-ideation`, `/respond-to-referees`, `/review-paper`, `/interview-me`) |

@@ -105,7 +105,7 @@ After replication is verified (all targets PASS):
 
 ## Enforcement
 
-This rule is enforced by the [`/audit-reproducibility`](../skills/audit-reproducibility/SKILL.md) skill. It parses numeric claims from a manuscript, locates matching values in `scripts/R/_outputs/` (or the user-specified outputs directory), and compares against the tolerance thresholds above. Run it:
+This rule is enforced by the [`/audit-reproducibility`](../skills/audit-reproducibility/SKILL.md) skill. It parses numeric claims from a manuscript, locates matching values in `code/_outputs/` (or the user-specified outputs directory), and compares against the tolerance thresholds above. Run it:
 
 - **Before submission** — `/audit-reproducibility path/to/manuscript.tex`
 - **Before releasing a replication package** — same invocation; aim for zero FAILs.
