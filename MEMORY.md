@@ -134,3 +134,14 @@ The key insight: each pattern enforces independence differently. Critic-fixer us
 [LEARN:scheduling] `CronCreate` (the local Claude Code cron) is **session-only** in practice even with `durable: true` — it dies if the Claude Code REPL isn't running when the cron time arrives. Hit this on 2026-04-16 when the user's usage got rate-limited, the session terminated, and the scheduled audit-hardening trigger never fired. For any autonomous work that must survive session termination (rate limits, Claude Code restarts, sleep), use **Claude Code Routines** (released Apr 14, 2026) instead — they run on Anthropic's web infrastructure, not the local REPL. `CronCreate` is fine for short-delay polling within an active session (check a build every 5 min), but not for "run this in an hour." See `.claude/references/audit-pet-peeves.md` entry 17.
 
 [LEARN:hooks] PreCompact hooks now support blocking via the modern protocol (exit 0 + `{"decision":"block","reason":"..."}` on stdout). `.claude/hooks/pre-compact.py` gained an opt-in DRAFT-plan guard (env var `CLAUDE_PRECOMPACT_BLOCK_ON_DRAFT=1`): blocks compaction once when an active plan is still marked DRAFT, so the user has a chance to approve the plan before losing mid-plan context. Default off — users who prefer the old save-and-continue behavior get no change. Fires at most once per plan to avoid lock-out loops.
+
+## Fork Conventions (weim-mkt)
+
+[LEARN:feedback] This fork puts R analysis code under `code/` (not `scripts/R/` as in upstream `pedrohcgs/claude-code-my-workflow`). Migration completed in commits `bef0387` (frontmatter scopes) and `a1a1424` (inline references + template removal).
+
+**Why:** The user's projects use a `./code/` convention; the upstream `scripts/R/` template scaffold (00_run_all.R … 05_figures.R) conflicted with the user's R conventions established in commits `9ab751f` and `7eb0d4d`.
+
+**How to apply:**
+- When writing or editing rules, skills, agents, scripts, or docs, always reference `code/` for R analysis paths, never `scripts/R/`.
+- When merging from upstream, expect drift: upstream may add new files mentioning `scripts/R/`. The `.claude/hooks/check-code-path.sh` drift guard fires on `SessionStart` and on `git post-merge` (if `core.hooksPath=.githooks` is set) to flag any reintroduced references.
+- Archival mentions in `CHANGELOG.md`, `MEMORY.md`, `quality_reports/`, and `session_logs/` are intentional and excluded from the drift check.
