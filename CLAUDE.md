@@ -65,6 +65,9 @@ python scripts/quality_score.py Quarto/file.qmd
 
 # Surface-count sync (README ↔ CLAUDE.md ↔ guide ↔ landing page)
 ./scripts/check-surface-sync.sh
+
+# Activate git post-merge drift guard (one-time, per clone)
+git config core.hooksPath .githooks
 ```
 
 **Palette contract:** color names in `Preambles/header.tex` must match SCSS variables in `Quarto/theme-template.scss`. See [`Preambles/README.md`](Preambles/README.md).
