@@ -137,6 +137,14 @@ The key insight: each pattern enforces independence differently. Critic-fixer us
 
 ## Fork Conventions (weim-mkt)
 
+[LEARN:feedback] `/commit` is local-only by default. Stop after `git commit`; do NOT push, open a PR, merge, or pull main unless the user explicitly asks in the same turn ("push", "open a PR", "merge", or `--push`/`--pr`/`--merge` flag).
+
+**Why:** The user wants explicit gating between local commit and any operation that affects the remote (origin) or shared state (main). A prior `/commit` call does not authorize a later push. Documented in [.claude/skills/commit/SKILL.md](.claude/skills/commit/SKILL.md) Step 5.
+
+**How to apply:**
+- After `git commit`, report the hash and branch, then stop.
+- When opening a PR (only on explicit request), default `gh pr create --repo <user>/<repo>` to the user's fork, not upstream — `gh` defaults to the parent repo, which is usually wrong.
+
 [LEARN:feedback] This fork puts R analysis code under `code/` (not `scripts/R/` as in upstream `pedrohcgs/claude-code-my-workflow`). Migration completed in commits `bef0387` (frontmatter scopes) and `a1a1424` (inline references + template removal).
 
 **Why:** The user's projects use a `./code/` convention; the upstream `scripts/R/` template scaffold (00_run_all.R … 05_figures.R) conflicted with the user's R conventions established in commits `9ab751f` and `7eb0d4d`.

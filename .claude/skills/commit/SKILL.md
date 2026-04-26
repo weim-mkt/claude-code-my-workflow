@@ -1,13 +1,13 @@
 ---
 name: commit
-description: Stage, commit, push, open a PR, and merge to main. Use ONLY on explicit commit intent — user says "commit", "ship it", "push this", "open a PR", "merge to main", "let's commit this", or prefixes with `/commit`. Do NOT auto-invoke on vague end-of-task phrases ("we're done", "wrap up") — those require explicit confirmation first. Runs the standard commit-PR-merge cycle; never force-pushes or skips hooks.
-argument-hint: "[optional: commit message]"
+description: Stage and commit changes locally. Stops after the commit — does NOT push, open a PR, merge, or pull unless the user explicitly asks. Use ONLY on explicit commit intent — user says "commit", "ship it", "let's commit this", or prefixes with `/commit`. Do NOT auto-invoke on vague end-of-task phrases ("we're done", "wrap up") — those require explicit confirmation first. Push/PR/merge are opt-in via separate user instruction; never force-pushes or skips hooks.
+argument-hint: "[optional: commit message] [--push] [--pr] [--merge]"
 allowed-tools: ["Bash", "Read", "Glob", "Task"]
 ---
 
-# Commit, PR, and Merge
+# Commit (with optional Push, PR, Merge)
 
-Stage changes, verify quality gates, commit with a descriptive message, create a PR, and merge to main.
+Stage changes, verify quality gates, and commit locally. **Default scope is local commit only** — do not push, do not open a PR, do not merge, do not pull main. The user must explicitly opt in to those steps.
 
 ## Steps
 
@@ -62,7 +62,7 @@ Do NOT stage `.claude/settings.local.json` or any files containing secrets.
 
 ### Step 4: Commit with a descriptive message
 
-If `$ARGUMENTS` is provided, use it as the commit message. Otherwise, analyze the staged changes and write a message that explains *why*, not just *what*.
+If `$ARGUMENTS` contains a commit message, use it. Otherwise, analyze the staged changes and write a message that explains *why*, not just *what*.
 
 ```bash
 git commit -m "$(cat <<'EOF'
@@ -71,11 +71,29 @@ EOF
 )"
 ```
 
-### Step 5: Push and create PR
+### Step 5: Report and STOP
+
+Report the new commit's hash, the branch name, and the message. **Stop here unless the user explicitly opted in to push/PR/merge** via:
+
+- An explicit verb in the prompt: "push", "open a PR", "merge to main", "ship it to GitHub".
+- A flag in `$ARGUMENTS`: `--push`, `--pr`, `--merge`.
+
+If none of those signals are present, the workflow ends. The user can run `git push`, `gh pr create`, etc. themselves, or invoke `/commit --push` (or follow up with "now push and PR").
+
+## Optional next steps (opt-in only)
+
+Run these ONLY when the user explicitly asks. Do not chain them automatically.
+
+### Step 6 (opt-in): Push branch
 
 ```bash
 git push -u origin <branch-name>
-gh pr create --title "<short title>" --body "$(cat <<'EOF'
+```
+
+### Step 7 (opt-in): Open PR
+
+```bash
+gh pr create --repo <user>/<repo> --base main --head <branch> --title "<short title>" --body "$(cat <<'EOF'
 ## Summary
 <1-3 bullet points>
 
@@ -87,7 +105,7 @@ EOF
 )"
 ```
 
-### Step 6: Merge and clean up
+### Step 8 (opt-in): Merge and clean up
 
 ```bash
 gh pr merge <pr-number> --merge --delete-branch
@@ -95,14 +113,12 @@ git checkout main
 git pull
 ```
 
-### Step 7: Report
-
-Report the PR URL and what was merged.
-
 ## Important
 
+- **Default scope is local commit only.** Pushing, opening PRs, merging, and pulling main happen ONLY when the user explicitly asks for them in the same turn. A prior `/commit` invocation does not authorize a future push.
 - **Never skip Step 0.** Quality gates catch broken compilation, bad citations, and hardcoded paths before they reach `main`. If the user insists on skipping, record their override reason in the commit message.
 - Always create a NEW branch — never commit directly to main.
 - Exclude `settings.local.json` and sensitive files from staging.
 - Use `--merge` (not `--squash` or `--rebase`) unless asked otherwise.
+- When opening a PR, default to the user's fork (e.g., `gh pr create --repo <user>/<repo>`), not the upstream. `gh` defaults to the parent fork, which is usually wrong for personal-fork workflows.
 - If the commit message from `$ARGUMENTS` is provided, use it exactly.

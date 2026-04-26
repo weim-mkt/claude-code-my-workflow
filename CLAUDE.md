@@ -6,7 +6,7 @@
      See the guide at docs/workflow-guide.html for full documentation. -->
 
 **Project:** [YOUR PROJECT NAME]
-**Institution:** [YOUR INSTITUTION]
+**Institution:** UCL School of Management
 **Branch:** main
 
 ---
@@ -30,17 +30,23 @@ Cross-session context lives in [MEMORY.md](MEMORY.md); past plans, specs, and se
 [YOUR-PROJECT]/
 ├── CLAUDE.MD                    # This file
 ├── .claude/                     # Rules, skills, agents, hooks
+├── .githooks/                   # Git hooks (activate: git config core.hooksPath .githooks)
 ├── Bibliography_base.bib        # Centralized bibliography
-├── Figures/                     # Figures and images
+├── Figures/                     # Figures and images (TikZ outputs, SVGs)
 ├── Preambles/header.tex         # LaTeX headers
 ├── Slides/                      # Beamer .tex files
 ├── Quarto/                      # RevealJS .qmd files + theme
 ├── docs/                        # GitHub Pages (auto-generated)
-├── scripts/                     # Utility scripts + R code
+├── guide/                       # Quarto-rendered workflow documentation
+├── code/                        # R analysis pipeline (load → clean → analyze → tables → figures)
+│   ├── scripts/                 # Standalone R/Python/Julia scripts (scraping, LLM calls, one-off jobs)
+│   ├── utils/                   # Helper functions reused across scripts
+│   └── diagnostics/             # Standalone diagnostic scripts
+├── scripts/                     # Project-level utilities (quality_score.py, sync_to_docs.sh, validators)
 ├── quality_reports/             # Plans, session logs, merge reports, decision records
 ├── explorations/                # Research sandbox (see rules)
 ├── templates/                   # Session log, quality report templates
-└── master_supporting_docs/      # Papers and existing slides
+└── master_supporting_docs/      # Papers and existing slides (claim-verifier ground truth)
 ```
 
 ---
