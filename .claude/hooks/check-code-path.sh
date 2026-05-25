@@ -22,6 +22,10 @@ REPO_ROOT="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || 
 # Files where archival mentions of scripts/R/ are expected and fine.
 EXCLUDES='(CHANGELOG\.md|MEMORY\.md|quality_reports/|session_logs/|\.claude/hooks/check-code-path\.sh|\.githooks/post-merge)'
 
+# grep output is "path:lineno:content". Anchor the exclude to the path portion
+# (everything before the first colon) so a match is only suppressed when the
+# FILE is archival — not when the matched line's CONTENT happens to mention an
+# excluded token (e.g. a guide line that references quality_reports/).
 drift=$(grep -rnE "scripts/(R|stata|python)" \
   --include='*.md' \
   --include='*.qmd' \
@@ -29,10 +33,13 @@ drift=$(grep -rnE "scripts/(R|stata|python)" \
   --include='*.py' \
   --include='*.sh' \
   --include='*.json' \
+  --include='*.yaml' \
+  --include='*.yml' \
   --include='*.R' \
   --include='*.do' \
+  --include='.gitignore' \
   "$REPO_ROOT" 2>/dev/null \
-  | grep -vE "$EXCLUDES" \
+  | grep -vE "^[^:]*$EXCLUDES" \
   || true)
 
 if [ -n "$drift" ]; then

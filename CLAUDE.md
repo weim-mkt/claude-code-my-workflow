@@ -38,10 +38,12 @@ Cross-session context lives in [MEMORY.md](MEMORY.md); past plans, specs, and se
 ├── Quarto/                      # RevealJS .qmd files + theme
 ├── docs/                        # GitHub Pages (auto-generated)
 ├── guide/                       # Quarto-rendered workflow documentation
-├── code/                        # R analysis pipeline (load → clean → analyze → tables → figures)
+├── code/                        # Analysis pipeline (R at root: load → clean → analyze → tables → figures)
 │   ├── scripts/                 # Standalone R/Python/Julia scripts (scraping, LLM calls, one-off jobs)
 │   ├── utils/                   # Helper functions reused across scripts
-│   └── diagnostics/             # Standalone diagnostic scripts
+│   ├── diagnostics/             # Standalone diagnostic scripts
+│   ├── stata/                   # Stata pipeline (.do files + _outputs/); see stata-code-conventions.md
+│   └── python/                  # Python pipeline (+ _outputs/)
 ├── scripts/                     # Project-level utilities (quality_score.py, sync_to_docs.sh, validators)
 ├── quality_reports/             # Plans, session logs, merge reports, decision records
 ├── explorations/                # Research sandbox (see rules)

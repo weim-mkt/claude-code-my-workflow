@@ -12,6 +12,8 @@ A **guide-refresh + ecosystem catch-up** minor release shipped in five passes ag
 
 **Inventory at release: 36 skills, 16 agents, 26 rules, 6 hooks** (was 30 / 14 / 24 / 6 at v1.8.0). The release adds 6 skills (`/humanize`, `/prompt`, `/prompt-only`, `/compress-session`, `/promote-memory`, `/stata-replication`), 2 agents (`humanize-auditor`, `promote-memory-council`), and 2 rules (`model-routing.md`, `stata-code-conventions.md`).
 
+> **Fork delta (weim-mkt):** counts above are upstream's release inventory. This fork carries +1 rule (`writing-style.md`, no em dashes in generated prose) and +1 hook (`check-code-path.sh`, the `scripts/` -> `code/` drift guard), so the fork's on-disk inventory is **27 rules and 7 hooks**. See `MEMORY.md` "Fork Conventions" for the rationale.
+
 ### Pass 1 (PR #114, merged 2026-05-20) — guide refresh mechanical corrections
 
 Eight mechanical corrections that bring the guide in line with Anthropic shipments through May 2026 (Weeks 17–20), reframe three lingering "automatic orchestrator" mentions, refresh the clo-author citation to its current MAS v2 architecture, and add a Models / API section to TROUBLESHOOTING covering the 2026-06-15 Sonnet 4 + Opus 4 retirement and the Agent SDK credit-pool split. No new skills, agents, rules, or hooks. On-disk inventory unchanged.

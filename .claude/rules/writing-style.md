@@ -32,3 +32,9 @@ Do **not** use em dashes (`—`, U+2014) in written prose.
 - Code, filenames, and paths are unaffected.
 - Direct quotations from external sources keep their original punctuation.
 - The en dash (`–`) and hyphen (`-`) are fine for ranges (pages, dates) and compound words.
+
+## Relationship to `/humanize`
+
+This rule is the **always-on, generation-time** layer: it prevents em dashes from being written in the first place, across all prose Claude generates (slides, manuscripts, commits, PRs, docs).
+
+The [`/humanize`](../skills/humanize/SKILL.md) skill is the **on-demand, review-time** layer: it audits existing prose for the broader set of AI-voice tells (boilerplate transitions, cliché lexicon, em-dash *overuse*, tricolon abuse, and more) and produces a report. The two are complementary, not redundant: keep this rule for prevention, run `/humanize` before submitting a paper to catch what slipped through.

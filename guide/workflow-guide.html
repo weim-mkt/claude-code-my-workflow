@@ -2619,7 +2619,7 @@ window.Quarto = {
 </tr>
 <tr class="even">
 <td>Multi-agent workflows</td>
-<td>15 specialized agents for proofreading, layout, pedagogy, code review, fact-checking, AI-voice auditing</td>
+<td>16 specialized agents for proofreading, layout, pedagogy, code review, fact-checking, AI-voice auditing</td>
 </tr>
 <tr class="odd">
 <td>Quality review</td>
@@ -2645,7 +2645,7 @@ window.Quarto = {
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>This workflow was developed over 6+ sessions building a PhD course on Causal Panel Data. The result: 6 complete lectures (140+ slides each), with Beamer + Quarto versions, interactive Plotly charts, TikZ diagrams, and R replication scripts — all managed by the orchestrator and reviewed by 14 specialized agents across 5 quality dimensions.</p>
+<p>This workflow was developed over 6+ sessions building a PhD course on Causal Panel Data. The result: 6 complete lectures (140+ slides each), with Beamer + Quarto versions, interactive Plotly charts, TikZ diagrams, and R replication scripts — all managed by the orchestrator and reviewed by 16 specialized agents across 5 quality dimensions.</p>
 <p>While this case study centers on slides, every component — agents, orchestrator, quality gates — works identically for research papers, data analysis, and proposals.</p>
 </div>
 </div>
@@ -5274,7 +5274,7 @@ Decision point (1-2 hours):
 </tr>
 </tbody>
 </table>
-<p>These skills produce structured reports saved to <code>quality_reports/</code>. The <code>/data-analysis</code> skill also generates R scripts (saved to <code>scripts/R/</code>) and runs the r-reviewer agent automatically.</p>
+<p>These skills produce structured reports saved to <code>quality_reports/</code>. The <code>/data-analysis</code> skill also generates R scripts (saved to <code>code/</code>) and runs the r-reviewer agent automatically.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -6910,6 +6910,11 @@ research-spec.md  ─────────────→  preregistration-dr
 <td><code>meta-governance.md</code></td>
 <td>Template vs working project distinctions</td>
 </tr>
+<tr class="odd">
+<td>Writing Style</td>
+<td><code>writing-style.md</code></td>
+<td>No em dashes in generated prose (preventive companion to <code>/humanize</code>)</td>
+</tr>
 </tbody>
 </table>
 <p><strong>Path-scoped</strong> (load only when working on matching files):</p>
@@ -7085,6 +7090,11 @@ research-spec.md  ─────────────→  preregistration-dr
 <td>Verification reminder</td>
 <td>PostToolUse[Write|Edit] (command)</td>
 <td><code>.claude/hooks/verify-reminder.py</code></td>
+</tr>
+<tr class="odd">
+<td>Code-path drift guard</td>
+<td>SessionStart (command) + <code>.githooks/post-merge</code></td>
+<td><code>.claude/hooks/check-code-path.sh</code></td>
 </tr>
 </tbody>
 </table>

@@ -20,9 +20,9 @@ claims:
   - id: C1
     claim: "ATT = -1.632 (SE 0.584, N=4291)"
     location: "manuscript.tex:Table 2, Col 3"
-    source_file: scripts/R/03_analyze.R
+    source_file: code/03_analyze.R
     source_line: 147
-    output_file: scripts/R/_outputs/main_did.rds
+    output_file: code/_outputs/main_did.rds
     output_field: att_overall
     tolerance:
       point_estimate: 0.01         # absolute tolerance for the headline value
@@ -45,9 +45,9 @@ claims:
     claim: "Effect persists at 73% magnitude in the leave-one-out
             specification (Appendix Table A.3)."
     location: "manuscript.tex:Appendix A, A.3"
-    source_file: scripts/R/04_robustness.R
+    source_file: code/04_robustness.R
     source_line: 89
-    output_file: scripts/R/_outputs/loo_robustness.rds
+    output_file: code/_outputs/loo_robustness.rds
     output_field: avg_retention_pct
     tolerance:
       point_estimate: 0.1          # 0.1 percentage points for percentages

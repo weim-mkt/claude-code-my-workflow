@@ -78,7 +78,7 @@ You describe a task. For complex or ambiguous requests, Claude first creates a r
 
 ### Specialized Agents
 
-Instead of one general-purpose reviewer, 14 focused agents each check one dimension. A representative sample:
+Instead of one general-purpose reviewer, 16 focused agents each check one dimension. A representative sample:
 
 - **proofreader** — grammar/typos
 - **slide-auditor** — visual layout
@@ -260,6 +260,7 @@ Rules use path-scoped loading: **always-on** rules load every session (~100 line
 | `orchestrator-protocol` | Contractor mode: implement → verify → review → fix → score |
 | `session-logging` | Three logging triggers: post-plan, incremental, end-of-session |
 | `meta-governance` | Template vs. working project distinctions |
+| `writing-style` | No em dashes in generated prose (AI-voice tell); preventive companion to `/humanize` |
 
 **Path-scoped** (load only when working on matching files):
 
