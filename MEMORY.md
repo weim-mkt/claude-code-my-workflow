@@ -135,24 +135,6 @@ The key insight: each pattern enforces independence differently. Critic-fixer us
 
 [LEARN:hooks] PreCompact hooks now support blocking via the modern protocol (exit 0 + `{"decision":"block","reason":"..."}` on stdout). `.claude/hooks/pre-compact.py` gained an opt-in DRAFT-plan guard (env var `CLAUDE_PRECOMPACT_BLOCK_ON_DRAFT=1`): blocks compaction once when an active plan is still marked DRAFT, so the user has a chance to approve the plan before losing mid-plan context. Default off — users who prefer the old save-and-continue behavior get no change. Fires at most once per plan to avoid lock-out loops.
 
-## Fork Conventions (weim-mkt)
-
-[LEARN:feedback] `/commit` is local-only by default. Stop after `git commit`; do NOT push, open a PR, merge, or pull main unless the user explicitly asks in the same turn ("push", "open a PR", "merge", or `--push`/`--pr`/`--merge` flag).
-
-**Why:** The user wants explicit gating between local commit and any operation that affects the remote (origin) or shared state (main). A prior `/commit` call does not authorize a later push. Documented in [.claude/skills/commit/SKILL.md](.claude/skills/commit/SKILL.md) Step 5.
-
-**How to apply:**
-- After `git commit`, report the hash and branch, then stop.
-- When opening a PR (only on explicit request), default `gh pr create --repo <user>/<repo>` to the user's fork, not upstream — `gh` defaults to the parent repo, which is usually wrong.
-
-[LEARN:feedback] This fork puts R analysis code under `code/` (not `scripts/R/` as in upstream `pedrohcgs/claude-code-my-workflow`). Migration completed in commits `bef0387` (frontmatter scopes) and `a1a1424` (inline references + template removal).
-
-**Why:** The user's projects use a `./code/` convention; the upstream `scripts/R/` template scaffold (00_run_all.R … 05_figures.R) conflicted with the user's R conventions established in commits `9ab751f` and `7eb0d4d`.
-
-**How to apply:**
-- When writing or editing rules, skills, agents, scripts, or docs, always reference `code/` for R analysis paths, never `scripts/R/`.
-- When merging from upstream, expect drift: upstream may add new files mentioning `scripts/R/`. The `.claude/hooks/check-code-path.sh` drift guard fires on `SessionStart` and on `git post-merge` (if `core.hooksPath=.githooks` is set) to flag any reintroduced references.
-- Archival mentions in `CHANGELOG.md`, `MEMORY.md`, `quality_reports/`, and `session_logs/` are intentional and excluded from the drift check.
 ## v1.8.0 Cycle Lessons (2026-04-27)
 
 [LEARN:permissions] **`.claude/` is hard-protected by the Claude Code extension and no user setting can fully unprotect it.** Per Anthropic's [permission-modes doc](https://code.claude.com/docs/en/permission-modes), the protected list (`.git`, `.vscode`, `.idea`, `.husky`, `.claude` minus carve-outs `commands/agents/skills/worktrees`) is hard-coded. Bypass mode does NOT skip these — it still prompts. The only mode that doesn't fire an interactive prompt on protected paths is **auto mode** (Mar 2026 Week 13), which routes them through a classifier instead. Auto mode requires Max/Team/Enterprise/API + Sonnet 4.6 / Opus 4.6 / Opus 4.7 + Anthropic API provider. Forkers without auto-mode access will see prompts on edits to `.claude/references/`, `.claude/rules/`, `.claude/hooks/`, `.claude/scripts/` no matter what their settings say.
@@ -164,7 +146,6 @@ The key insight: each pattern enforces independence differently. Critic-fixer us
 [LEARN:audit] **Surface-sync gate covers numeric counts but NOT enumerative tables.** v1.8.0's deep-audit caught the appendix "All Skills" table missing `/checkpoint` + `/preregister` AND "All Agents" missing the v1.5.0 peer-review trio (editor / domain-referee / methods-referee — pre-existing drift inherited across 3 releases). The `check-surface-sync.py` script counts assertion phrasings ("30 skills") but doesn't verify enumerative tables tabulate the same N items. Pet-peeves entry added (#18). Future: when adding a skill/agent, check the appendix tables — surface-sync won't catch the row drift.
 
 [LEARN:pattern] **`disable-model-invocation: true` is a load-bearing-write discipline, not a "do not disturb" toggle.** Set it on skills that write a *persistent file the user must explicitly intend to create* (lecture .tex, TikZ source, SKILL.md, checkpoint snapshot, preregistration document). Don't set it on skills that produce transient analysis output (proofread / review-r / visual-audit reports). Codified in `templates/skill-template.md` under "When to set `disable-model-invocation: true`". The flag still allows direct invocation as `/skill-name` — it only blocks model auto-trigger on heuristic match.
-
 
 ## v1.9.0 Cycle Lessons (2026-05-20)
 
@@ -187,3 +168,22 @@ The key insight: each pattern enforces independence differently. Critic-fixer us
 [LEARN:research] **Research-grounded plans beat eyeballed roadmaps.** v1.9.0 started with 4 parallel research agents (Anthropic ecosystem / community repos / cross-vendor / internal audit) producing a 17-item ranked recommendation set, then 2 verification agents resolving uncertainties (rename history, ARS schema details). The plan that emerged was traceable to specific URLs and verified facts. By contrast, the original "let me brainstorm what could improve the guide" cycle would have produced opinions, not citations. Lesson: when scope is "what should we add?" not "fix this bug", invest in research before planning. Cost: ~30 min of agent dispatch; value: confidence that each item was non-redundant and currently true.
 
 [LEARN:workflow] **Surface-sync gate must check enumerative tables too, not just numeric assertions.** v1.9.0 added 6 skills + 2 agents; each addition needed manual surface-sync verification PLUS manual appendix-table updates. `check-surface-sync.sh` caught count drift but not row-by-row table drift. This is pet-peeves entry #18 + v2.0-backlog "enumerative-table consistency check." Until that ships, every new skill / agent addition requires: (1) update count assertions; (2) update appendix table in guide; (3) update README skill/agent table. The cost of forgetting is silent drift that compounds across releases (the v1.5.0 peer-review trio of agents was missing from README for 3 releases before v1.8.0 caught it).
+
+## Fork Conventions (weim-mkt)
+
+[LEARN:feedback] `/commit` is local-only by default. Stop after `git commit`; do NOT push, open a PR, merge, or pull main unless the user explicitly asks in the same turn ("push", "open a PR", "merge", or `--push`/`--pr`/`--merge` flag).
+
+**Why:** The user wants explicit gating between local commit and any operation that affects the remote (origin) or shared state (main). A prior `/commit` call does not authorize a later push. Documented in [.claude/skills/commit/SKILL.md](.claude/skills/commit/SKILL.md) Step 5.
+
+**How to apply:**
+- After `git commit`, report the hash and branch, then stop.
+- When opening a PR (only on explicit request), default `gh pr create --repo <user>/<repo>` to the user's fork, not upstream — `gh` defaults to the parent repo, which is usually wrong.
+
+[LEARN:feedback] This fork puts R analysis code under `code/` (not `scripts/R/` as in upstream `pedrohcgs/claude-code-my-workflow`). Migration completed in commits `bef0387` (frontmatter scopes) and `a1a1424` (inline references + template removal). Upstream's v1.8.0 R-pipeline scaffold (00_run_all.R … 05_figures.R + scripts/R/README.md) was deliberately skipped during the v1.8.0 sync — re-introducing `scripts/R/` would conflict with this convention.
+
+**Why:** The user's projects use a `./code/` convention; the upstream `scripts/R/` template scaffold conflicted with the user's R conventions established in commits `9ab751f` and `7eb0d4d`.
+
+**How to apply:**
+- When writing or editing rules, skills, agents, scripts, or docs, always reference `code/` for R analysis paths, never `scripts/R/`.
+- When merging from upstream, expect drift: upstream may add new files mentioning `scripts/R/`. The `.claude/hooks/check-code-path.sh` drift guard fires on `SessionStart` and on `git post-merge` (if `core.hooksPath=.githooks` is set) to flag any reintroduced references.
+- Archival mentions in `CHANGELOG.md`, `MEMORY.md`, `quality_reports/`, and `session_logs/` are intentional and excluded from the drift check.

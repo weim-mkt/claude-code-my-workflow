@@ -299,6 +299,18 @@ Already partially shipped in **Pass 1** (TROUBLESHOOTING "Models and API" sectio
 
 ---
 
+## v1.8.0-fork — 2026-04-29
+
+Sync of upstream `pedrohcgs/claude-code-my-workflow` v1.8.0 into the `weim-mkt` fork. Fork-specific deviations from upstream:
+
+- **Skipped:** the new R-pipeline scaffold (`scripts/R/00_run_all.R … 05_figures.R` + `scripts/R/README.md`). This fork uses `code/` for R analysis (PRs #3–#5); reintroducing `scripts/R/` would conflict with the migration and trip `.claude/hooks/check-code-path.sh`.
+- **Kept:** `.claude/rules/writing-style.md` (no-em-dashes rule from PR #1), against upstream's deletion. Still referenced from `CLAUDE.md`.
+- **Kept:** `.claude/hooks/check-code-path.sh` and `.githooks/post-merge` (drift guards from PR #4), against upstream's deletion.
+- **Resolved:** `.claude/skills/audit-reproducibility/SKILL.md` keeps the fork's `code/_outputs/` default while picking up upstream's new `Monitor` tool authorization.
+- **Surface counts:** 14 agents / 30 skills / 25 rules / 7 hooks (fork-merged). Differs from upstream's 14/30/24/6 because of the kept rule and hook above. Run `./scripts/sync_to_docs.sh` after this sync to regenerate `docs/*.html` from the fork-edited `guide/workflow-guide.qmd`.
+
+---
+
 ## v1.8.0 — 2026-04-27
 
 A **disciplinary breadth + audit-hardening + Apr 2026 incorporation** minor release. The cycle landed in two passes: (1) infrastructure-only audit-hardening (mechanical parity checks via `check-skill-integrity.py`, living pet-peeves catalogue, PreCompact blocking, Routines awareness) and (2) capability work (two new skills `/checkpoint` and `/preregister`, political-science breadth via three journal profiles + two paper types + a discipline-cards reference, and Apr 2026 documentation: auto mode promotion, protected-paths gate explainer, session-management commands, Computer Use sidebar, Monitor tool integration, `disable-model-invocation` discipline). No breaking changes; counts updated across all monitored surfaces.
