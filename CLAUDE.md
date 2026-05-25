@@ -38,10 +38,12 @@ Cross-session context lives in [MEMORY.md](MEMORY.md); past plans, specs, and se
 ├── Quarto/                      # RevealJS .qmd files + theme
 ├── docs/                        # GitHub Pages (auto-generated)
 ├── guide/                       # Quarto-rendered workflow documentation
-├── code/                        # R analysis pipeline (load → clean → analyze → tables → figures)
+├── code/                        # Analysis pipeline (R at root: load → clean → analyze → tables → figures)
 │   ├── scripts/                 # Standalone R/Python/Julia scripts (scraping, LLM calls, one-off jobs)
 │   ├── utils/                   # Helper functions reused across scripts
-│   └── diagnostics/             # Standalone diagnostic scripts
+│   ├── diagnostics/             # Standalone diagnostic scripts
+│   ├── stata/                   # Stata pipeline (.do files + _outputs/); see stata-code-conventions.md
+│   └── python/                  # Python pipeline (+ _outputs/)
 ├── scripts/                     # Project-level utilities (quality_score.py, sync_to_docs.sh, validators)
 ├── quality_reports/             # Plans, session logs, merge reports, decision records
 ├── explorations/                # Research sandbox (see rules)
@@ -126,6 +128,12 @@ Enforced by `/commit` (halts + asks for override); not enforced by a git pre-com
 | `/verify-claims [file]` | Chain-of-Verification fact-check (forked verifier, fresh context) |
 | `/checkpoint [topic]` | Save a structured state snapshot (active plan, decisions, file pointers, next actions) before stopping or handing off |
 | `/preregister [--style osf|aspredicted|aea-rct]` | Draft a preregistration document (OSF / AsPredicted / AEA RCT Registry) from a research spec |
+| `/humanize [file]` | Detect AI-voice tells in academic prose (read-only audit; no rewrite) |
+| `/prompt [text] [depth:light|standard|deep]` | Reformat informal input into a structured six-section prompt, then execute |
+| `/prompt-only [text] [depth] [--save path]` | Same formatting as `/prompt`, but emits the prompt as a reusable artifact (no execution) |
+| `/compress-session [slug]` | Distil current session into structured notes before auto-compaction (vs `/checkpoint` for natural stops) |
+| `/promote-memory [filter]` | Five-critic council that votes on which `[LEARN]` entries graduate from personal-memory.md to MEMORY.md |
+| `/stata-replication [paper-or-data]` | End-to-end Stata pipeline scaffold + execution via `stata-mcp` (mirrors `/data-analysis` for R) |
 
 ---
 

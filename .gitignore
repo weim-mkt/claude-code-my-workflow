@@ -73,8 +73,10 @@ quality_reports/preregistrations/*
 !quality_reports/checkpoints/.gitkeep
 !quality_reports/preregistrations/.gitkeep
 
-# R analysis outputs (generated artifacts; keep scripts, ignore outputs)
-scripts/R/_outputs/
+# Analysis outputs (generated artifacts; keep scripts, ignore outputs)
+code/_outputs/
+code/stata/_outputs/
+code/python/_outputs/
 
 # Output artifacts — uncomment lines below based on your preference
 # *.rds
