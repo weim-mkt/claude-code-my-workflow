@@ -8,6 +8,8 @@ paths:
 
 **Standard:** Senior Principal Data Engineer + PhD researcher quality
 
+> **Scope:** These standards apply to **analysis scripts** — data work, simulations, figure generation (a top-level `set.seed()`, `library()` at the top, relative output paths). For R **package source** (`R/`, `tests/`, `DESCRIPTION`, `NAMESPACE`, `man/`), see [`r-package-conventions.md`](r-package-conventions.md), which has different rules (roxygen-generated `NAMESPACE`, no `library()` in `R/`, CRAN policy). The numerical discipline in §8 applies to both.
+
 ---
 
 ## 1. Reproducibility
