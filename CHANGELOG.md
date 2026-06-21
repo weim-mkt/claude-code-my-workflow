@@ -158,6 +158,8 @@ A **guide-refresh + ecosystem catch-up** minor release shipped in five passes ag
 **Inventory at release: 36 skills, 16 agents, 26 rules, 6 hooks** (was 30 / 14 / 24 / 6 at v1.8.0). The release adds 6 skills (`/humanize`, `/prompt`, `/prompt-only`, `/compress-session`, `/promote-memory`, `/stata-replication`), 2 agents (`humanize-auditor`, `promote-memory-council`), and 2 rules (`model-routing.md`, `stata-code-conventions.md`).
 
 > **Fork delta (weim-mkt):** counts above are upstream's release inventory. This fork carries +1 rule (`writing-style.md`, no em dashes in generated prose) and +1 hook (`check-code-path.sh`, the `scripts/` -> `code/` drift guard), so the fork's on-disk inventory is **27 rules and 7 hooks**. See `MEMORY.md` "Fork Conventions" for the rationale.
+>
+> **Superseded 2026-06-21.** The `code/` migration was reverted to upstream's `scripts/R/` layout; the `writing-style.md` rule, the `check-code-path.sh` hook, and the `.githooks/post-merge` guard were removed; and the no-em-dash convention now lives inline in `CLAUDE.md` Core Principles. This fork no longer diverges from upstream in rules or hooks — see `README.md` for current on-disk counts and `MEMORY.md` "Fork Conventions" for the rationale.
 
 ### Pass 1 (PR #114, merged 2026-05-20) — guide refresh mechanical corrections
 
@@ -453,6 +455,8 @@ Sync of upstream `pedrohcgs/claude-code-my-workflow` v1.8.0 into the `weim-mkt` 
 - **Kept:** `.claude/hooks/check-code-path.sh` and `.githooks/post-merge` (drift guards from PR #4), against upstream's deletion.
 - **Resolved:** `.claude/skills/audit-reproducibility/SKILL.md` keeps the fork's `code/_outputs/` default while picking up upstream's new `Monitor` tool authorization.
 - **Surface counts:** 14 agents / 30 skills / 25 rules / 7 hooks (fork-merged). Differs from upstream's 14/30/24/6 because of the kept rule and hook above. Run `./scripts/sync_to_docs.sh` after this sync to regenerate `docs/*.html` from the fork-edited `guide/workflow-guide.qmd`.
+
+> **Superseded 2026-06-21.** These fork deviations were rolled back: the fork adopted upstream's `scripts/R/` layout, removed `writing-style.md` / `check-code-path.sh` / `.githooks/post-merge`, and `/audit-reproducibility` now defaults to `scripts/R/_outputs/`. The bullets above describe the v1.8.0-fork sync only.
 
 ---
 
