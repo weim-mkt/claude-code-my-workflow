@@ -1,6 +1,7 @@
 ---
 paths:
-  - "code/**/*.R"
+  - "scripts/**/*.R"
+  - "Figures/**/*.R"
 ---
 
 # Replication-First Protocol
@@ -109,7 +110,7 @@ After replication is verified (all targets PASS):
 
 ## Enforcement
 
-This rule is enforced by the [`/audit-reproducibility`](../skills/audit-reproducibility/SKILL.md) skill. It parses numeric claims from a manuscript, locates matching values in `code/_outputs/` (or the user-specified outputs directory), and compares against the tolerance thresholds above. Run it:
+This rule is enforced by the [`/audit-reproducibility`](../skills/audit-reproducibility/SKILL.md) skill. It parses numeric claims from a manuscript, locates matching values in `scripts/R/_outputs/` (or the user-specified outputs directory), and compares against the tolerance thresholds above. Run it:
 
 - **Before submission** — `/audit-reproducibility path/to/manuscript.tex`
 - **Before releasing a replication package** — same invocation; aim for zero FAILs.
@@ -139,9 +140,9 @@ claims:
   - id: C1                                        # stable identifier (used in cross-references)
     claim: "ATT = -1.632 (SE 0.584, N=4291)"     # exact text or paraphrase from manuscript
     location: "manuscript.tex:Table 2, Col 3"     # where it appears in the paper
-    source_file: code/03_analyze.R           # script that produced the value
+    source_file: scripts/R/03_analyze.R           # script that produced the value
     source_line: 147                              # nearest line in the script
-    output_file: code/_outputs/main_did.rds  # where the value lives on disk
+    output_file: scripts/R/_outputs/main_did.rds  # where the value lives on disk
     output_field: att_overall                      # field within the output (e.g., list element, column)
     tolerance:
       point_estimate: 0.01                         # absolute tolerance per Phase 3 above

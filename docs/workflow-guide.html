@@ -4331,7 +4331,7 @@ Orchestrator executes the plan end-to-end --- no prompts.</code></pre>
 <section id="hooks---automated-enforcement" class="level3" data-number="4.8.4">
 <h3 data-number="4.8.4" class="anchored" data-anchor-id="hooks---automated-enforcement"><span class="header-section-number">4.8.4</span> Hooks — Automated Enforcement</h3>
 <p>The session log reminder above is one example of a broader pattern: using <strong>hooks</strong> to enforce rules that Claude might otherwise forget during long sessions. Rules live in context and can be compressed away. Hooks live in <code>.claude/settings.json</code> and fire every time, regardless of context state.</p>
-<p>The template includes 8 hooks for logging, notifications, context survival, and git safety (plus a real git pre-commit hook, <code>.githooks/pre-commit</code>, installed via <code>./scripts/install-hooks.sh</code>):</p>
+<p>The template includes 7 hooks for logging, notifications, context survival, and git safety (plus a real git pre-commit hook, <code>.githooks/pre-commit</code>, installed via <code>./scripts/install-hooks.sh</code>):</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 23%">
@@ -4380,11 +4380,6 @@ Orchestrator executes the plan end-to-end --- no prompts.</code></pre>
 <td>Claim reconcile</td>
 <td><code>PostToolUse[Edit|Write]</code></td>
 <td>Flags stale numeric claims when analysis scripts change</td>
-</tr>
-<tr class="even">
-<td>Code-path drift guard</td>
-<td><code>SessionStart</code></td>
-<td>Flags drift between referenced code paths and disk after a merge (paired with <code>.githooks/post-merge</code>)</td>
 </tr>
 </tbody>
 </table>
@@ -4897,7 +4892,7 @@ Phase 4: Only then extend
 <p>In one course, we discovered that a widely-used R package silently produced <strong>incorrect estimates</strong> due to a subtle specification issue. This bug was caught 3 times in different scripts. Without the replication-first protocol, these wrong numbers would have been taught to PhD students.</p>
 </div>
 </div>
-<p><strong>Source-language coverage:</strong> The pattern is language-agnostic. The template ships <a href="#all-skills"><code>/data-analysis</code></a> for R-first projects and <a href="#all-skills"><code>/stata-replication</code></a> (v1.9.0) for Stata-first projects (mirrors <code>/data-analysis</code> exactly; same numbered-pipeline shape, different language; executes via the <code>stata-mcp</code> MCP server). Python-first projects follow the same convention with the path <code>code/python/_outputs/</code>. For Stata users, <a href=".claude/rules/stata-code-conventions.md"><code>stata-code-conventions.md</code></a> (v1.9.0) codifies the header (<code>version 18</code>, <code>clear all</code>, <code>set seed</code>/<code>set sortseed</code>), numbered pipeline (00–99), <code>esttab</code> for <code>\input{}</code> tables, clustering discipline (<code>reghdfe</code>), balance via <code>iebaltab</code>, and AEA Data Editor compliance.</p>
+<p><strong>Source-language coverage:</strong> The pattern is language-agnostic. The template ships <a href="#all-skills"><code>/data-analysis</code></a> for R-first projects and <a href="#all-skills"><code>/stata-replication</code></a> (v1.9.0) for Stata-first projects (mirrors <code>/data-analysis</code> exactly; same numbered-pipeline shape, different language; executes via the <code>stata-mcp</code> MCP server). Python-first projects follow the same convention with the path <code>scripts/python/_outputs/</code>. For Stata users, <a href=".claude/rules/stata-code-conventions.md"><code>stata-code-conventions.md</code></a> (v1.9.0) codifies the header (<code>version 18</code>, <code>clear all</code>, <code>set seed</code>/<code>set sortseed</code>), numbered pipeline (00–99), <code>esttab</code> for <code>\input{}</code> tables, clustering discipline (<code>reghdfe</code>), balance via <code>iebaltab</code>, and AEA Data Editor compliance.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -5286,7 +5281,7 @@ Decision point (1-2 hours):
 </tr>
 </tbody>
 </table>
-<p>These skills produce structured reports saved to <code>quality_reports/</code>. The <code>/data-analysis</code> skill also generates R scripts (saved to <code>code/</code>) and runs the r-reviewer agent automatically.</p>
+<p>These skills produce structured reports saved to <code>quality_reports/</code>. The <code>/data-analysis</code> skill also generates R scripts (saved to <code>scripts/R/</code>) and runs the r-reviewer agent automatically.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -7145,7 +7140,7 @@ research-spec.md  ─────────────→  preregistration-dr
 <tr class="odd">
 <td>Content Invariants</td>
 <td><code>content-invariants.md</code></td>
-<td><code>.tex</code>, <code>.qmd</code>, <code>Preambles/</code>, <code>code/**</code></td>
+<td><code>.tex</code>, <code>.qmd</code>, <code>Preambles/</code>, <code>scripts/R/**</code></td>
 </tr>
 <tr class="even">
 <td>Cross-Artifact Review</td>
@@ -7170,7 +7165,7 @@ research-spec.md  ─────────────→  preregistration-dr
 <tr class="even">
 <td>Stata Code Conventions</td>
 <td><code>stata-code-conventions.md</code></td>
-<td><code>**/*.do</code>, <code>code/stata/**</code> — header scaffold, numbered pipeline, esttab tables, clustering discipline, AEA compliance (v1.9.0)</td>
+<td><code>**/*.do</code>, <code>scripts/stata/**</code> — header scaffold, numbered pipeline, esttab tables, clustering discipline, AEA compliance (v1.9.0)</td>
 </tr>
 <tr class="odd">
 <td>Simulation Conventions</td>
@@ -7240,11 +7235,6 @@ research-spec.md  ─────────────→  preregistration-dr
 <td>Claim reconcile</td>
 <td>PostToolUse (command)</td>
 <td><code>.claude/hooks/claim-reconcile.py</code> — flags stale numeric claims when scripts change</td>
-</tr>
-<tr class="odd">
-<td>Code-path drift guard</td>
-<td>SessionStart (command) + <code>.githooks/post-merge</code></td>
-<td><code>.claude/hooks/check-code-path.sh</code></td>
 </tr>
 </tbody>
 </table>

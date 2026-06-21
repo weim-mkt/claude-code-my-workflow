@@ -1,7 +1,7 @@
 ---
 paths:
   - "**/*.do"
-  - "code/stata/**"
+  - "scripts/stata/**"
 ---
 
 # Stata Code Conventions
@@ -30,7 +30,7 @@ set seed 12345                    // pin RNG seed for any random ops
 set sortseed 12345                // pin sort stability across versions
 cap log close
 cap log close _all                // belt-and-suspenders
-log using "code/stata/_outputs/NN_log.smcl", replace
+log using "scripts/stata/_outputs/NN_log.smcl", replace
 ```
 
 Why each line:
@@ -51,10 +51,10 @@ exit, clear STATA      // explicit clean exit; useful in batch mode
 
 ## 2. Numbered pipeline
 
-Scripts live in `code/stata/` and are numbered for run order:
+Scripts live in `scripts/stata/` and are numbered for run order:
 
 ```
-code/stata/
+scripts/stata/
 ├── 00_install.do        # ssc install packages, set globals, paths
 ├── 01_clean.do          # raw → cleaned panel
 ├── 02_descriptive.do    # summary tables, balance, attrition
@@ -64,14 +64,14 @@ code/stata/
 └── 99_run_all.do        # do "01_clean.do" / do "02_..." / ...
 ```
 
-The 99-script is the **one-command reproduction**: `do code/stata/99_run_all.do` from the repo root produces every output the paper cites. AEA Data Editor checks this exact shape.
+The 99-script is the **one-command reproduction**: `do scripts/stata/99_run_all.do` from the repo root produces every output the paper cites. AEA Data Editor checks this exact shape.
 
 ## 3. Outputs convention
 
-All outputs land in `code/stata/_outputs/`:
+All outputs land in `scripts/stata/_outputs/`:
 
 ```
-code/stata/_outputs/
+scripts/stata/_outputs/
 ├── 01_log.smcl                 # captured stdout per script
 ├── clean_panel.dta             # cleaned data
 ├── descriptives.csv            # summary stats
@@ -85,7 +85,7 @@ code/stata/_outputs/
 
 ```stata
 * At end of 00_install.do (or via a dedicated sessioninfo subroutine):
-log using "code/stata/_outputs/sessionInfo.txt", text replace
+log using "scripts/stata/_outputs/sessionInfo.txt", text replace
 which estout
 which reghdfe
 which ivreg2
@@ -105,7 +105,7 @@ eststo m1
 quietly: reghdfe y x1 x2 controls, absorb(unit time) cluster(unit)
 eststo m2
 
-esttab m1 m2 using "code/stata/_outputs/tab_main.tex", replace ///
+esttab m1 m2 using "scripts/stata/_outputs/tab_main.tex", replace ///
     booktabs label                              /// use the variable labels you set
     se(2) b(3)                                  /// SE in parens, 3-decimal coeffs
     star(* 0.10 ** 0.05 *** 0.01)              /// significance convention
@@ -113,7 +113,7 @@ esttab m1 m2 using "code/stata/_outputs/tab_main.tex", replace ///
     nonotes addnote("Robust SEs clustered at unit level.")
 ```
 
-Then in the manuscript: `\input{code/stata/_outputs/tab_main.tex}` — table values update mechanically every time the .do file runs.
+Then in the manuscript: `\input{scripts/stata/_outputs/tab_main.tex}` — table values update mechanically every time the .do file runs.
 
 ## 5. Significance-stars convention
 
@@ -138,8 +138,8 @@ For every RCT or quasi-experimental design:
 ## 8. Figures (graph export)
 
 ```stata
-graph export "code/stata/_outputs/fig_eventstudy.pdf", replace as(pdf)
-graph export "code/stata/_outputs/fig_eventstudy.png", replace as(png) width(2000)
+graph export "scripts/stata/_outputs/fig_eventstudy.pdf", replace as(pdf)
+graph export "scripts/stata/_outputs/fig_eventstudy.png", replace as(png) width(2000)
 ```
 
 Both vector (PDF for the paper) and raster (PNG for slides). Don't rely on the auto-generated `.gph` — it's not portable across Stata versions.
@@ -160,7 +160,7 @@ Both vector (PDF for the paper) and raster (PNG for slides). Don't rely on the a
 The [AEA Data Editor checklist](https://aeadataeditor.github.io/) requires:
 
 - `README.md` at repo root describing data source, computational requirements, run instructions.
-- A single command that reproduces all results (`do code/stata/99_run_all.do`).
+- A single command that reproduces all results (`do scripts/stata/99_run_all.do`).
 - All scripts numbered and ordered.
 - A separate `requirements.txt`-equivalent — for Stata, that's the `sessionInfo.txt` from §3 plus a list of `ssc install` commands in `00_install.do`.
 - License (MIT / GPL / similar).

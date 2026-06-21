@@ -77,7 +77,7 @@ When a mistake is corrected, append a `[LEARN:category]` entry below.
 
 [LEARN:drift] Guard against false positives when scanning for template counts: `"3 parallel agents"`, `"17 specialized agents"` (clo-author attribution), `"start with 2-3 skills"` are all legitimate non-template uses of `N + category` phrases. Use compound patterns requiring multiple template-specific tokens on the same line.
 
-[LEARN:audit] A path-exclusion filter on `grep` output must be anchored to the path field, not the whole line. The `scripts/{R,stata,python}` drift guard (`.claude/hooks/check-code-path.sh`) piped `grep -rn` output (`path:lineno:content`) through `grep -vE "$EXCLUDES"`, where `EXCLUDES` listed archival paths like `quality_reports/`. Because the filter matched the entire line, any *content* line that merely mentioned `quality_reports/` (e.g. a guide sentence) was silently dropped from the drift report. The guard reported clean while real drift sat in `guide/workflow-guide.qmd`. Fix: anchor to the path prefix with `grep -vE "^[^:]*$EXCLUDES"`. Caught during the v1.9.0 consistency review, not by the guard itself. Sibling lesson: a scan's `--include` list must cover **every** file type that can carry a path — `*.yaml` (passport-template.yaml) and `.gitignore` were both missing, so refs there slipped through regardless of the exclude bug. When adding a file format that can reference analysis paths, add it to the guard's includes.
+[LEARN:audit] A path-exclusion filter on `grep` output must be anchored to the path field, not the whole line. A drift scan that pipes `grep -rn` output (`path:lineno:content`) through `grep -vE "$EXCLUDES"` (where `EXCLUDES` lists archival paths like `quality_reports/`) will silently drop any *content* line that merely mentions an excluded token (e.g. a guide sentence referencing `quality_reports/`) unless the exclude is anchored to the path prefix: `grep -vE "^[^:]*$EXCLUDES"`. Sibling lesson: a scan's `--include` list must cover **every** file type that can carry a path (`*.yaml`, `.gitignore`, etc.), or refs there slip through regardless of the exclude bug. (Learned from the fork's `code/` drift guard, which was removed 2026-06-21 when the fork adopted upstream's `scripts/R/` convention.)
 
 ## Claude Code Hooks
 
@@ -187,11 +187,10 @@ The key insight: each pattern enforces independence differently. Critic-fixer us
 - After `git commit`, report the hash and branch, then stop.
 - When opening a PR (only on explicit request), default `gh pr create --repo <user>/<repo>` to the user's fork, not upstream — `gh` defaults to the parent repo, which is usually wrong.
 
-[LEARN:feedback] This fork puts R analysis code under `code/` (not `scripts/R/` as in upstream `pedrohcgs/claude-code-my-workflow`). Migration completed in commits `bef0387` (frontmatter scopes) and `a1a1424` (inline references + template removal). Upstream's v1.8.0 R-pipeline scaffold (00_run_all.R … 05_figures.R + scripts/R/README.md) was deliberately skipped during the v1.8.0 sync — re-introducing `scripts/R/` would conflict with this convention.
+[LEARN:feedback] This fork follows upstream's `scripts/R/` convention for R analysis paths (R at `scripts/R/`, Stata at `scripts/stata/`, Python at `scripts/python/`, outputs in `scripts/R/_outputs/`). The earlier `./code/` migration was reverted on 2026-06-21 to eliminate divergence from `pedrohcgs/claude-code-my-workflow`; the `check-code-path.sh` drift guard and `.githooks/post-merge` that policed the old `code/` convention were removed at the same time.
 
-**Why:** The user's projects use a `./code/` convention; the upstream `scripts/R/` template scaffold conflicted with the user's R conventions established in commits `9ab751f` and `7eb0d4d`.
+**Why:** Aligning with upstream's path convention means upstream's analysis skills (`/data-analysis`, `/stata-replication`, `/audit-reproducibility`, `/replication-package`, `/simulation-study`, etc.) work as shipped and never drift on merge.
 
 **How to apply:**
-- When writing or editing rules, skills, agents, scripts, or docs, always reference `code/` for R analysis paths, never `scripts/R/`.
-- When merging from upstream, expect drift: upstream may add new files mentioning `scripts/R/`. The `.claude/hooks/check-code-path.sh` drift guard fires on `SessionStart` and on `git post-merge` (if `core.hooksPath=.githooks` is set) to flag any reintroduced references.
-- Archival mentions in `CHANGELOG.md`, `MEMORY.md`, `quality_reports/`, and `session_logs/` are intentional and excluded from the drift check.
+- Reference `scripts/R/` (and `scripts/stata/`, `scripts/python/`) for analysis paths, never `code/`.
+- No drift guard is needed: upstream already uses these paths, so merges no longer reintroduce a conflicting convention.

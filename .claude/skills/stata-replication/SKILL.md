@@ -1,6 +1,6 @@
 ---
 name: stata-replication
-description: End-to-end Stata replication pipeline — scaffolds numbered `.do` files in `code/stata/`, executes them via the `stata-mcp` MCP server, captures logs and outputs to `code/stata/_outputs/`, and produces publication-ready tables (esttab) and figures (graph export). Mirrors `/data-analysis` for R-first projects. Use when user says "stata replication", "set up Stata pipeline", "scaffold the .do files", "run Stata analysis", "AEA replication package in Stata", or when a project's analysis language is Stata not R.
+description: End-to-end Stata replication pipeline — scaffolds numbered `.do` files in `scripts/stata/`, executes them via the `stata-mcp` MCP server, captures logs and outputs to `scripts/stata/_outputs/`, and produces publication-ready tables (esttab) and figures (graph export). Mirrors `/data-analysis` for R-first projects. Use when user says "stata replication", "set up Stata pipeline", "scaffold the .do files", "run Stata analysis", "AEA replication package in Stata", or when a project's analysis language is Stata not R.
 author: Claude Code Academic Workflow
 version: 1.0.0
 argument-hint: "[paper-or-data-pointer] [--from-r] [--no-execute]"
@@ -10,14 +10,14 @@ allowed-tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Task"]
 
 # `/stata-replication` — Stata pipeline scaffold + execution
 
-Build a complete Stata replication pipeline in `code/stata/`: numbered `.do` files following [`.claude/rules/stata-code-conventions.md`](../../rules/stata-code-conventions.md), executed via the [`stata-mcp`](https://github.com/SepineTam/stata-mcp) MCP server, with outputs landing in `code/stata/_outputs/`.
+Build a complete Stata replication pipeline in `scripts/stata/`: numbered `.do` files following [`.claude/rules/stata-code-conventions.md`](../../rules/stata-code-conventions.md), executed via the [`stata-mcp`](https://github.com/SepineTam/stata-mcp) MCP server, with outputs landing in `scripts/stata/_outputs/`.
 
 ## When to use
 
 - Your project's analysis language is **Stata** (not R). Common in econ field experiments, RCT studies, and any AEA submission where the original replication package is Stata.
 - You're porting an R-first project to Stata for an AEA submission.
 - You're adding a Stata robustness check to an R-first paper.
-- You want a one-command reproduction: `do code/stata/99_run_all.do`.
+- You want a one-command reproduction: `do scripts/stata/99_run_all.do`.
 
 ## When NOT to use
 
@@ -43,16 +43,16 @@ If `stata-mcp` is not installed, the skill halts at Phase 0 with installation in
 
 1. Verify `stata-mcp` is registered in the user's MCP configuration. If not → halt with install instructions.
 2. Verify Stata is installed locally (the MCP server cannot run without it). Output stata version to confirm.
-3. Confirm `code/stata/` directory exists or can be created.
+3. Confirm `scripts/stata/` directory exists or can be created.
 4. Read [`.claude/rules/stata-code-conventions.md`](../../rules/stata-code-conventions.md) — every emitted `.do` file follows this convention.
-5. If `--from-r` flag is set, locate the existing R pipeline at `code/` and use it as a translation source. Apply the Stata → R pitfalls table from `replication-protocol.md` in reverse.
+5. If `--from-r` flag is set, locate the existing R pipeline at `scripts/R/` and use it as a translation source. Apply the Stata → R pitfalls table from `replication-protocol.md` in reverse.
 
 ### Phase 1: Scaffold the pipeline
 
-Emit (or update) these files in `code/stata/`, each conforming to the header convention from `stata-code-conventions.md`:
+Emit (or update) these files in `scripts/stata/`, each conforming to the header convention from `stata-code-conventions.md`:
 
 ```
-code/stata/
+scripts/stata/
 ├── 00_install.do        # ssc install, set globals, paths, sessionInfo capture
 ├── 01_clean.do          # raw → cleaned panel
 ├── 02_descriptive.do    # summary tables, balance (iebaltab), attrition
@@ -69,21 +69,21 @@ If the paper or data source suggests specific specs (e.g., DiD with `reghdfe`, I
 For each script in numbered order:
 
 1. Dispatch to `stata-mcp` to execute the `.do` file.
-2. Capture the log (Stata writes to `code/stata/_outputs/NN_log.smcl` per the header convention) and the resulting `.dta` / `.tex` / `.pdf` outputs.
+2. Capture the log (Stata writes to `scripts/stata/_outputs/NN_log.smcl` per the header convention) and the resulting `.dta` / `.tex` / `.pdf` outputs.
 3. If a script fails, halt — do NOT auto-fix unless the failure is trivial (typo flagged by Stata at parse time). For substantive failures (insufficient observations, singular matrices, missing covariates), surface to the user.
 
 For long-running scripts (> 2 minutes), use the **Monitor tool** to stream stdout — same pattern documented in `/data-analysis` and `/audit-reproducibility`.
 
 ### Phase 3: Verify
 
-1. Confirm every expected output exists in `code/stata/_outputs/`.
+1. Confirm every expected output exists in `scripts/stata/_outputs/`.
 2. Check `sessionInfo.txt` was captured (package versions).
 3. Run `/audit-reproducibility` if a manuscript exists — it now handles Stata `.dta` outputs via `haven`/`pyreadstat` (Pass 4.3).
 4. Report scripts run, outputs produced, any warnings from Stata.
 
 ### Phase 4 (optional): R cross-check
 
-If `--from-r` was set, run the R version of the same analysis (assumed to live at `code/`) and compare:
+If `--from-r` was set, run the R version of the same analysis (assumed to live at `scripts/R/`) and compare:
 
 - Point estimates: should match to ~0.01 (per `replication-protocol.md` tolerance).
 - Standard errors: should match to ~0.05 (clustering df adjustments can differ slightly between Stata and R).

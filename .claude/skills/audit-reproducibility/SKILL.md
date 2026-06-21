@@ -1,7 +1,7 @@
 ---
 name: audit-reproducibility
 description: Enforce the replication-protocol.md rule by cross-checking numeric claims in a manuscript against the actual R / Stata / Python outputs. Report PASS/FAIL per claim against tolerance thresholds. Use before submission and before releasing a replication package.
-argument-hint: "[manuscript path] [outputs-dir] (outputs-dir defaults to code/_outputs/)"
+argument-hint: "[manuscript path] [outputs-dir] (outputs-dir defaults to scripts/R/_outputs/)"
 allowed-tools: ["Read", "Grep", "Glob", "Write", "Bash", "Task", "Monitor"]
 effort: high
 ---
@@ -22,14 +22,14 @@ Compare numeric claims in a manuscript (point estimates, standard errors, p-valu
 ## Inputs
 
 - `$0` — path to the manuscript (`.tex`, `.qmd`, `.md`, `.pdf`). Required.
-- `$1` — path to the outputs directory. Defaults to `code/_outputs/`. Recognised alternatives: `code/stata/_outputs/` (Stata pipelines built by [`/stata-replication`](../stata-replication/SKILL.md)), `_targets/objects/` (R `targets` workflows), any directory the user-specified outputs live in.
+- `$1` — path to the outputs directory. Defaults to `scripts/R/_outputs/`. Recognised alternatives: `scripts/stata/_outputs/` (Stata pipelines built by [`/stata-replication`](../stata-replication/SKILL.md)), `_targets/objects/` (R `targets` workflows), any directory the user-specified outputs live in.
 
 ## Workflow
 
 ### Phase 0: Pre-flight
 
 1. Read [`replication-protocol.md`](../../rules/replication-protocol.md) for the tolerance thresholds currently in effect.
-2. Verify the outputs directory exists and is non-empty. If empty or stale (older than the manuscript), prompt the user to re-run their pipeline (e.g., `Rscript code/00_run_all.R`) before auditing.
+2. Verify the outputs directory exists and is non-empty. If empty or stale (older than the manuscript), prompt the user to re-run their pipeline (e.g., `Rscript scripts/R/00_run_all.R`) before auditing.
 3. Ensure a `sessionInfo.txt` or equivalent environment capture exists in the outputs dir.
 
 ### Phase 1: Extract claims from the manuscript
@@ -72,7 +72,7 @@ Record each extracted result:
 
 ```
 {
-  source: "code/_outputs/results.rds",
+  source: "scripts/R/_outputs/results.rds",
   lookup_key: "fit_main$coefficients['treated']",
   value: -1.628,
   uncertainty: 0.591,
@@ -198,14 +198,14 @@ The skill compares manuscript claims against outputs in three source-language ec
 
 | Source | Default outputs dir | Read-output via | Common claim sources |
 |---|---|---|---|
-| **R** (default) | `code/_outputs/` | `readRDS()`, `arrow::read_parquet()`, `vroom::vroom()` | `.rds` / `.parquet` / `.csv` / `tinytable` `.tex` |
-| **Stata** (v1.9.0) | `code/stata/_outputs/` | `haven::read_dta()` from R, or `pyreadstat.read_dta()` from Python | `.dta` / `esttab` `.tex` / `.smcl` log values |
-| **Python** | `code/python/_outputs/` (or `_targets/`) | `pandas.read_parquet`, `pickle.load` | `.parquet` / `.pickle` / `.csv` |
+| **R** (default) | `scripts/R/_outputs/` | `readRDS()`, `arrow::read_parquet()`, `vroom::vroom()` | `.rds` / `.parquet` / `.csv` / `tinytable` `.tex` |
+| **Stata** (v1.9.0) | `scripts/stata/_outputs/` | `haven::read_dta()` from R, or `pyreadstat.read_dta()` from Python | `.dta` / `esttab` `.tex` / `.smcl` log values |
+| **Python** | `scripts/python/_outputs/` (or `_targets/`) | `pandas.read_parquet`, `pickle.load` | `.parquet` / `.pickle` / `.csv` |
 
 **Stata-specific notes (v1.9.0):**
 
 - `.dta` outputs are read via `haven::read_dta()` (R), `pyreadstat.read_dta()` (Python), or by parsing the corresponding `esttab` `.tex` if the table-cell value is what the manuscript cites.
-- Manuscript cell `\input{code/stata/_outputs/tab_main.tex}` is the strongest provenance signal — the cell value comes mechanically from the .do file. Match the location in the `.tex` to the regression call in `03_analyze.do`.
+- Manuscript cell `\input{scripts/stata/_outputs/tab_main.tex}` is the strongest provenance signal — the cell value comes mechanically from the .do file. Match the location in the `.tex` to the regression call in `03_analyze.do`.
 - Clustering df adjustments can differ between `reghdfe` and base `reg, cluster()`. If a SE mismatches at the 2nd decimal, the tolerance in `replication-protocol.md` covers it; if it mismatches at the 1st decimal, investigate the df adjustment.
 
 ## Passport-mode (v1.9.0)

@@ -113,7 +113,7 @@ Variance mode runs N independent referees (default N=3, max N=5 for token-cost d
 
 6. **Save to** `quality_reports/paper_review_[sanitized_name]_round[N].md` (N=1 in default mode; N increments in adversarial mode).
 
-6b. **Cross-artifact integration.** Unless `$ARGUMENTS` contains `--no-cross-artifact`, and if the manuscript references analysis scripts (detected via `\input{code/...}`, `%% source:` comments, or matching `code/_outputs/` filenames), auto-invoke:
+6b. **Cross-artifact integration.** Unless `$ARGUMENTS` contains `--no-cross-artifact`, and if the manuscript references analysis scripts (detected via `\input{scripts/...}`, `%% source:` comments, or matching `scripts/R/_outputs/` filenames), auto-invoke:
    - `/review-r` on each referenced script (forked subagent, results to `quality_reports/cross_artifact_[paper]/review_r_*.md`)
    - `/audit-reproducibility` on the manuscript + outputs dir (results to `quality_reports/cross_artifact_[paper]/reproducibility.md`)
 

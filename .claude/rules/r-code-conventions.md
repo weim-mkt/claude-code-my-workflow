@@ -1,7 +1,8 @@
 ---
 paths:
-  - "**/*.R"
-  - "code/**/*.R"
+  - "Figures/**/*.R"
+  - "scripts/**/*.R"
+  - "explorations/**/*.R"
 ---
 
 # R Code Standards
@@ -87,7 +88,7 @@ qs2::qs_save(model_fit, here::here("output", "descriptive_name.qs2"))
 ## 7. Project Structure
 
 ```
-./code/
+./scripts/R/
   main.R          # Entry point, sources 00-*.R files
   00-setup.R      # Packages + global env vars
   01-load_data.R  # Load raw data

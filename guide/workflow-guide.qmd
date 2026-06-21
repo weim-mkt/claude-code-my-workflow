@@ -1112,7 +1112,7 @@ The first four layers are your safety net. Anything written to disk survives ind
 
 The session log reminder above is one example of a broader pattern: using **hooks** to enforce rules that Claude might otherwise forget during long sessions. Rules live in context and can be compressed away. Hooks live in `.claude/settings.json` and fire every time, regardless of context state.
 
-The template includes 8 hooks for logging, notifications, context survival, and git safety (plus a real git pre-commit hook, `.githooks/pre-commit`, installed via `./scripts/install-hooks.sh`):
+The template includes 7 hooks for logging, notifications, context survival, and git safety (plus a real git pre-commit hook, `.githooks/pre-commit`, installed via `./scripts/install-hooks.sh`):
 
 | Hook | Event | What It Does |
 |------|-------|-------------|
@@ -1123,7 +1123,6 @@ The template includes 8 hooks for logging, notifications, context survival, and 
 | Context monitor | `PostToolUse[Bash|Task]` | Progressive warnings at 40%/55%/65%/80%/90% context |
 | Git guardrails | `PreToolUse[Bash]` | Blocks destructive git (`reset --hard`, `clean -f`, `push --force`, `add -A`) |
 | Claim reconcile | `PostToolUse[Edit|Write]` | Flags stale numeric claims when analysis scripts change |
-| Code-path drift guard | `SessionStart` | Flags drift between referenced code paths and disk after a merge (paired with `.githooks/post-merge`) |
 
 Verification and Beamer-Quarto sync are enforced via auto-loaded rules, which are the right tool for nuanced judgment. Hooks are reserved for enforcement that *must* survive context compression.
 
@@ -1465,7 +1464,7 @@ Phase 4: Only then extend
 In one course, we discovered that a widely-used R package silently produced **incorrect estimates** due to a subtle specification issue. This bug was caught 3 times in different scripts. Without the replication-first protocol, these wrong numbers would have been taught to PhD students.
 :::
 
-**Source-language coverage:** The pattern is language-agnostic. The template ships [`/data-analysis`](#all-skills) for R-first projects and [`/stata-replication`](#all-skills) (v1.9.0) for Stata-first projects (mirrors `/data-analysis` exactly; same numbered-pipeline shape, different language; executes via the `stata-mcp` MCP server). Python-first projects follow the same convention with the path `code/python/_outputs/`. For Stata users, [`stata-code-conventions.md`](.claude/rules/stata-code-conventions.md) (v1.9.0) codifies the header (`version 18`, `clear all`, `set seed`/`set sortseed`), numbered pipeline (00–99), `esttab` for `\input{}` tables, clustering discipline (`reghdfe`), balance via `iebaltab`, and AEA Data Editor compliance.
+**Source-language coverage:** The pattern is language-agnostic. The template ships [`/data-analysis`](#all-skills) for R-first projects and [`/stata-replication`](#all-skills) (v1.9.0) for Stata-first projects (mirrors `/data-analysis` exactly; same numbered-pipeline shape, different language; executes via the `stata-mcp` MCP server). Python-first projects follow the same convention with the path `scripts/python/_outputs/`. For Stata users, [`stata-code-conventions.md`](.claude/rules/stata-code-conventions.md) (v1.9.0) codifies the header (`version 18`, `clear all`, `set seed`/`set sortseed`), numbered pipeline (00–99), `esttab` for `\input{}` tables, clustering discipline (`reghdfe`), balance via `iebaltab`, and AEA Data Editor compliance.
 
 ::: {.callout-note}
 ## Claims provenance via `passport.yaml` (v1.9.0)
@@ -1718,7 +1717,7 @@ Five skills support the research workflow beyond slide development:
 | `/review-paper [file]` | Full manuscript review with referee objections | Before submission or after a draft |
 | `/data-analysis [data]` | End-to-end R analysis: explore, regress, produce publication-ready output | Empirical analysis phase |
 
-These skills produce structured reports saved to `quality_reports/`. The `/data-analysis` skill also generates R scripts (saved to `code/`) and runs the r-reviewer agent automatically.
+These skills produce structured reports saved to `quality_reports/`. The `/data-analysis` skill also generates R scripts (saved to `scripts/R/`) and runs the r-reviewer agent automatically.
 
 ::: {.callout-note}
 ## `/review-paper --peer [journal]` — simulated peer review pipeline
@@ -2750,12 +2749,12 @@ Claude Code supports **plugins** --- bundled collections of skills, agents, hook
 | Orchestrator Research | `orchestrator-research.md` | `*.R`, `explorations/` |
 | Exploration Folder | `exploration-folder-protocol.md` | `explorations/` |
 | Exploration Fast-Track | `exploration-fast-track.md` | `explorations/` |
-| Content Invariants | `content-invariants.md` | `.tex`, `.qmd`, `Preambles/`, `code/**` |
+| Content Invariants | `content-invariants.md` | `.tex`, `.qmd`, `Preambles/`, `scripts/R/**` |
 | Cross-Artifact Review | `cross-artifact-review.md` | `master_supporting_docs/`, `.tex`, `.qmd` |
 | Summary–Body Parity | `summary-parity.md` | `CHANGELOG.md`, `README.md`, `.qmd`, skill/rule/agent `.md` |
 | Post-Flight Verification | `post-flight-verification.md` | skills that generate factual claims (`/lit-review`, `/research-ideation`, `/respond-to-referees`, `/review-paper`, `/interview-me`) |
 | Model Routing | `model-routing.md` | `.claude/agents/**/*.md`, `.claude/skills/**/SKILL.md` — 70/20/10 architect/editor split, per-agent `model:` field guidance (v1.9.0) |
-| Stata Code Conventions | `stata-code-conventions.md` | `**/*.do`, `code/stata/**` — header scaffold, numbered pipeline, esttab tables, clustering discipline, AEA compliance (v1.9.0) |
+| Stata Code Conventions | `stata-code-conventions.md` | `**/*.do`, `scripts/stata/**` — header scaffold, numbered pipeline, esttab tables, clustering discipline, AEA compliance (v1.9.0) |
 | Simulation Conventions | `simulation-conventions.md` | `**/*simulation*.R`, `**/*_sim.R`, `explorations/**` — Monte Carlo discipline: DGP/estimand, L'Ecuyer seeding, Monte Carlo SE, coverage-vs-truth, raw-result storage (v1.10.0) |
 | R Package Conventions | `r-package-conventions.md` | `R/**`, `tests/**`, `DESCRIPTION`, `NAMESPACE`, `man/**` — package-source standards: no `library()` in `R/`, roxygen NAMESPACE, Imports/Suggests, testthat 3e, CRAN policy (v1.10.0) |
 | Confidential Data | `confidential-data.md` | restricted/confidential data paths — no raw confidential data in git, disclosure-avoidance discipline, used by `/disclosure-check` / `/replication-package` / `/data-management-plan` (v2.0) |
@@ -2771,7 +2770,6 @@ Claude Code supports **plugins** --- bundled collections of skills, agents, hook
 | Context monitor | PostToolUse[Bash\|Task] (command) | `.claude/hooks/context-monitor.py` |
 | Git guardrails | PreToolUse (command) | `.claude/hooks/git-guardrails.py` — blocks `reset --hard` / `clean -f` / `push --force` / `add -A` |
 | Claim reconcile | PostToolUse (command) | `.claude/hooks/claim-reconcile.py` — flags stale numeric claims when scripts change |
-| Code-path drift guard | SessionStart (command) + `.githooks/post-merge` | `.claude/hooks/check-code-path.sh` |
 
 **Additional hook events** available in Claude Code (not used in this template but available for custom hooks):
 

@@ -79,10 +79,8 @@ quality_reports/diagnoses/*
 !quality_reports/audits/.gitkeep
 !quality_reports/diagnoses/.gitkeep
 
-# Analysis outputs (generated artifacts; keep scripts, ignore outputs)
-code/_outputs/
-code/stata/_outputs/
-code/python/_outputs/
+# R analysis outputs (generated artifacts; keep scripts, ignore outputs)
+scripts/R/_outputs/
 
 # Output artifacts — uncomment lines below based on your preference
 # *.rds

@@ -188,7 +188,7 @@ This workflow is designed as a **single hub for an entire research program** —
 ## What's Included
 
 <details>
-<summary><strong>18 agents, 53 skills, 32 rules, 8 hooks</strong> (click to expand)</summary>
+<summary><strong>18 agents, 53 skills, 32 rules, 7 hooks</strong> (click to expand)</summary>
 
 ### Agents (`.claude/agents/`)
 
@@ -319,12 +319,12 @@ Rules use path-scoped loading: **always-on** rules load every session (~100 line
 | `exploration-fast-track` | `explorations/` | Lightweight exploration workflow (60/100 threshold) |
 | `tikz-prevention` (v1.4.x) | `Slides/**`, `Figures/**`, `Preambles/**` | TikZ pre-flight grep checks (P3/P4 collision avoidance) |
 | `tikz-measurement` (v1.5.x) | `Slides/**`, `Figures/**`, `Preambles/**`, `scripts/**` | Bézier curve depth math + 6-pass collision protocol (from MixtapeTools) |
-| `content-invariants` (v1.6.x) | `.tex`, `.qmd`, `Preambles/`, `code/**` | Pre-Flight Reports — proves inputs were read before work |
+| `content-invariants` (v1.6.x) | `.tex`, `.qmd`, `Preambles/`, `scripts/R/**` | Pre-Flight Reports — proves inputs were read before work |
 | `cross-artifact-review` (v1.7.0) | `master_supporting_docs/`, `.tex`, `.qmd` | Paper ↔ code dependency graph; auto-invokes `/review-r` + `/audit-reproducibility` |
 | `post-flight-verification` (v1.7.0) | Skills generating factual claims | Chain-of-Verification protocol with forked verifier |
 | `summary-parity` (v1.8.x) | `CHANGELOG.md`, `README.md`, `.qmd`, skill/rule/agent `.md` | Anti-whack-a-mole: re-verify summaries against their bodies |
 | `model-routing` (v1.9.0) | `.claude/agents/**/*.md`, `.claude/skills/**/SKILL.md` | 70/20/10 architect/editor split (Haiku/Sonnet/Opus) |
-| `stata-code-conventions` (v1.9.0) | `**/*.do`, `code/stata/**` | Stata header scaffold, numbered pipeline, esttab, clustering discipline, AEA compliance |
+| `stata-code-conventions` (v1.9.0) | `**/*.do`, `scripts/stata/**` | Stata header scaffold, numbered pipeline, esttab, clustering discipline, AEA compliance |
 | `simulation-conventions` (v1.10.0) | `**/*simulation*.R`, `**/*_sim.R`, `explorations/**` | Monte Carlo discipline: DGP/estimand, L'Ecuyer seeding, Monte Carlo SE, coverage-vs-truth, raw-result storage |
 | `r-package-conventions` (v1.10.0) | `R/**`, `tests/**`, `DESCRIPTION`, `NAMESPACE`, `man/**` | R package-source standards: no `library()` in `R/`, roxygen NAMESPACE, Imports/Suggests, testthat 3e, CRAN policy |
 | `confidential-data` (v2.0) | `data/**`, `**/*.dta`, `**/restricted/**`, `**/confidential/**` | Restricted/IRB-data protocol: never commit raw data, disclosure clearance before release, restricted-data-safe multi-author git topology |
@@ -361,7 +361,7 @@ Rules use path-scoped loading: **always-on** rules load every session (~100 line
 | Python 3 (3.9+) | Internal checkers (palette sync, TikZ prevention) | Preinstalled on macOS/Linux; [python.org](https://www.python.org/) for Windows |
 | XeLaTeX | LaTeX compilation (Beamer `HelloWorld`, real lectures) | [TeX Live](https://tug.org/texlive/) or [MacTeX](https://tug.org/mactex/) |
 | [Quarto](https://quarto.org) | Web slides (Quarto `HelloWorld`, real lectures) | [quarto.org/docs/get-started](https://quarto.org/docs/get-started/) |
-| R | Figures and analysis (`/data-analysis`, `code/` directory) | [r-project.org](https://www.r-project.org/) |
+| R | Figures and analysis (`/data-analysis`, `scripts/R/` directory) | [r-project.org](https://www.r-project.org/) |
 | pdf2svg | TikZ → SVG for Quarto (`/extract-tikz`) | `brew install pdf2svg` (macOS), `apt install pdf2svg` (Debian) |
 | [gh CLI](https://cli.github.com/) | PR / issue workflow | `brew install gh` (macOS), `apt install gh` (Debian) |
 
@@ -369,7 +369,7 @@ Rules use path-scoped loading: **always-on** rules load every session (~100 line
 
 **Minimum to run the included HelloWorld demos end-to-end:** add XeLaTeX (for `/compile-latex HelloWorld`) and Quarto (for `/deploy HelloWorld`).
 
-**Your real lectures may need more** — R for `code/` analyses, pdf2svg if you use TikZ extraction, gh CLI if you use the PR-based commit workflow. `./scripts/validate-setup.sh` reports which of these are installed and what each unlocks.
+**Your real lectures may need more** — R for `scripts/R/` analyses, pdf2svg if you use TikZ extraction, gh CLI if you use the PR-based commit workflow. `./scripts/validate-setup.sh` reports which of these are installed and what each unlocks.
 
 ---
 
