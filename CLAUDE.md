@@ -71,7 +71,7 @@ python scripts/quality_score.py Quarto/file.qmd
 # Surface-count sync (README ↔ CLAUDE.md ↔ guide ↔ landing page)
 ./scripts/check-surface-sync.sh
 
-# Activate git post-merge drift guard (one-time, per clone)
+# Activate git pre-commit quality gate (one-time, per clone)
 git config core.hooksPath .githooks
 ```
 

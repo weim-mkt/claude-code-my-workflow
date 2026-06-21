@@ -918,7 +918,7 @@ Permission mode is not resolved from a single file. Claude Code honors **six lay
 
 This is the single most common source of confusion. Work through the checklist in order:
 
-1. **Look at the status line** at the top of the Claude Code panel. With this repo's `statusLine` configured, it prints `[BYPASS]`, `[PLAN]`, `[AUTO-EDIT]`, or `[PROMPT]` for the four standard modes. Any other mode Claude Code reports (e.g., `dontAsk`) is shown as a bracketed raw name like `[dontAsk]`. If it doesn't say `[BYPASS]`, you have an in-session override --- press `Shift+Tab` to cycle modes until you land on bypass.
+1. **Check the live permission mode.** This repo's status line no longer prints a permission badge — the live mode is not part of the status line's JSON data contract, so it cannot be shown there. Claude Code displays the current mode in its input box instead; pressing `Shift+Tab` cycles modes. If you are not in bypass, cycle until you land on it (or confirm the resolved mode with `/permission-check`, below).
 2. **Run `/permission-check`** to see every layer's value, the resolved merged state, and any drift (e.g., project says bypass but project-local says default).
 3. **Check for stale sessions.** If settings changed recently but the session predates the change, it still runs under the old mode. Reload the window (`Cmd+Shift+P` → "Developer: Reload Window") and start a new session.
 4. **Check `deny` lists.** A match in any layer's `deny` blocks the tool regardless of `allow` entries elsewhere.
@@ -1189,7 +1189,7 @@ The `context-monitor.py` hook tracks approximate context usage and provides prog
 
 Use `/context-status` to check current session health at any time.
 
-Note: the monitor uses tool call count as a proxy for context usage, so warnings may appear earlier or later than actual compaction.
+Note: the monitor estimates context usage from the latest message's live token count against the context window, falling back to a tool-call-count proxy only when that usage cannot be read, so warnings are approximate.
 
 #### Recovery After Compaction
 

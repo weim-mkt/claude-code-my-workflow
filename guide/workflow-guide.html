@@ -2558,7 +2558,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">June 10, 2026</p>
+      <p class="date-modified">June 21, 2026</p>
     </div>
   </div>
     
@@ -4016,7 +4016,7 @@ APPROVED   NEEDS WORK
 <h3 data-number="4.6.2" class="anchored" data-anchor-id="troubleshooting-prompts-fire-despite-bypasspermissions"><span class="header-section-number">4.6.2</span> Troubleshooting: Prompts Fire Despite <code>bypassPermissions</code></h3>
 <p>This is the single most common source of confusion. Work through the checklist in order:</p>
 <ol type="1">
-<li><strong>Look at the status line</strong> at the top of the Claude Code panel. With this repo’s <code>statusLine</code> configured, it prints <code>[BYPASS]</code>, <code>[PLAN]</code>, <code>[AUTO-EDIT]</code>, or <code>[PROMPT]</code> for the four standard modes. Any other mode Claude Code reports (e.g., <code>dontAsk</code>) is shown as a bracketed raw name like <code>[dontAsk]</code>. If it doesn’t say <code>[BYPASS]</code>, you have an in-session override — press <code>Shift+Tab</code> to cycle modes until you land on bypass.</li>
+<li><strong>Check the live permission mode.</strong> This repo’s status line no longer prints a permission badge — the live mode is not part of the status line’s JSON data contract, so it cannot be shown there. Claude Code displays the current mode in its input box instead; pressing <code>Shift+Tab</code> cycles modes. If you are not in bypass, cycle until you land on it (or confirm the resolved mode with <code>/permission-check</code>, below).</li>
 <li><strong>Run <code>/permission-check</code></strong> to see every layer’s value, the resolved merged state, and any drift (e.g., project says bypass but project-local says default).</li>
 <li><strong>Check for stale sessions.</strong> If settings changed recently but the session predates the change, it still runs under the old mode. Reload the window (<code>Cmd+Shift+P</code> → “Developer: Reload Window”) and start a new session.</li>
 <li><strong>Check <code>deny</code> lists.</strong> A match in any layer’s <code>deny</code> blocks the tool regardless of <code>allow</code> entries elsewhere.</li>
@@ -4532,7 +4532,7 @@ Orchestrator executes the plan end-to-end --- no prompts.</code></pre>
 </tbody>
 </table>
 <p>Use <code>/context-status</code> to check current session health at any time.</p>
-<p>Note: the monitor uses tool call count as a proxy for context usage, so warnings may appear earlier or later than actual compaction.</p>
+<p>Note: the monitor estimates context usage from the latest message’s live token count against the context window, falling back to a tool-call-count proxy only when that usage cannot be read, so warnings are approximate.</p>
 </section>
 <section id="recovery-after-compaction" class="level4" data-number="4.8.5.4">
 <h4 data-number="4.8.5.4" class="anchored" data-anchor-id="recovery-after-compaction"><span class="header-section-number">4.8.5.4</span> Recovery After Compaction</h4>
@@ -6925,72 +6925,72 @@ research-spec.md  ─────────────→  preregistration-dr
 <td><code>.claude/skills/r-package-check/</code></td>
 <td>R package release gate — <code>devtools::document()</code> + tests + <code>R CMD check --as-cran</code> + CRAN-policy triage (v1.10.0)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>/replication-package</code></td>
 <td><code>.claude/skills/replication-package/</code></td>
 <td>Assemble a submission-ready DCAS / openICPSR replication package; calls <code>/audit-reproducibility</code> and blocks on FAIL (v2.0)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>/capture-environment</code></td>
 <td><code>.claude/skills/capture-environment/</code></td>
 <td>Snapshot the computational environment (renv.lock / sessionInfo / requirements.txt / uv.lock + optional Dockerfile + seeds) (v2.0)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>/did-event-study</code></td>
 <td><code>.claude/skills/did-event-study/</code></td>
 <td>Staggered DiD / event-study wrapper over canonical packages (Callaway–Sant’Anna <code>did</code>, <code>fixest::sunab</code>, HonestDiD; Stata <code>csdid</code>/<code>eventstudyinteract</code>/<code>honestdid</code>) (v2.0)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>/power-analysis</code></td>
 <td><code>.claude/skills/power-analysis/</code></td>
 <td>Power / required-N / MDE for study design (RCT, clustered/ICC, multi-arm, or simulation-based) + a methods paragraph for <code>/preregister</code> (v2.0)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>/disclosure-check</code></td>
 <td><code>.claude/skills/disclosure-check/</code></td>
 <td>Pre-screen restricted-data outputs for SDL violations (small cells, dominance, PII); gates on any CRITICAL (v2.0)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>/grant-proposal</code></td>
 <td><code>.claude/skills/grant-proposal/</code></td>
 <td>Scaffold a grant proposal (NSF/NIH/ERC/foundation) from an <code>/interview-me</code> spec; delegates DMP + facilities; aims↔︎methods↔︎budget coherence pass (v2.0)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>/data-management-plan</code></td>
 <td><code>.claude/skills/data-management-plan/</code></td>
 <td>Draft a funder-compliant Data Management Plan (NSF/NIH 2023/ERC/Horizon) (v2.0)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>/coauthor-brief</code></td>
 <td><code>.claude/skills/coauthor-brief/</code></td>
 <td>Generate a collaborator handoff brief: git delta, per-artifact state, open questions, reproduce-locally + restricted-data steps (v2.0)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>/triage-inbox</code></td>
 <td><code>.claude/skills/triage-inbox/</code></td>
 <td>Triage academic email + calendar (Gmail/Calendar MCP) into a prioritized digest + referee-obligations tracker; human-gated actions only (v2.0)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>/syllabus</code></td>
 <td><code>.claude/skills/syllabus/</code></td>
 <td>Build a course syllabus from a topic/reading list (schedule, objectives, assessment + rubric, per-week <code>/create-lecture</code> work-list) (v2.0)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>/teach-from-paper</code></td>
 <td><code>.claude/skills/teach-from-paper/</code></td>
 <td>Turn a paper into a lecture outline, teachable results, slide skeleton (→ <code>/create-lecture</code>), discussion questions, exercise brief (v2.0)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>/respond-to-eval</code></td>
 <td><code>.claude/skills/respond-to-eval/</code></td>
 <td>Turn student course evaluations into a classified teaching-improvement plan (Keep/Change/Investigate/Out-of-scope) (v2.0)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>/scaffold-exercises</code></td>
 <td><code>.claude/skills/scaffold-exercises/</code></td>
 <td>Scaffold a graded problem set (analytical/empirical/coding) with worked solutions; clean student set + separate solution key (v2.0)</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>/new-skill</code></td>
 <td><code>.claude/skills/new-skill/</code></td>
 <td>Scaffold a convention-compliant skill (interview → write <code>SKILL.md</code> with gate-passing frontmatter) (v2.0)</td>
