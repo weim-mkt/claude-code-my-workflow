@@ -73,6 +73,20 @@ dt |>
 ggsave(filepath, width = 12, height = 5, bg = "transparent")
 ```
 
+### Table Export
+
+- Export regression tables to LaTeX with `modelsummary` (pass the fitted model, not pre-extracted coefficients -- let it format estimates, SEs, stars, and GOF rows).
+- Output format is inferred from the file extension; write `.tex` for `\input{}` into slides/manuscripts.
+
+```r
+modelsummary::modelsummary(
+  list("(1)" = fit),
+  output   = here::here("output", "tab_main.tex"),
+  stars    = c("*" = 0.1, "**" = 0.05, "***" = 0.01),
+  gof_omit = "AIC|BIC|Log.Lik|RMSE"
+)
+```
+
 ## 6. Data Caching
 
 **Heavy computations cached to disk; downstream scripts load pre-computed data.**
