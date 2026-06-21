@@ -72,9 +72,19 @@ If both succeed, delete `Slides/HelloWorld.tex` and `Quarto/HelloWorld.qmd` and 
 
 ## How It Works
 
+### Goal-first, gate-enforced (the v2.0 shift)
+
+You don't craft a perfect prompt — you **state a goal and let the work loop toward it under gates**. Specialist agents do the labor; enforcing gates decide when it's good enough; you adjudicate the disagreements they surface. Three things make that trustworthy:
+
+- **Real gates, not reminders.** A version-controlled pre-commit hook (run `./scripts/install-hooks.sh` once) runs the surface-sync + quality (≥80) checks on *every* commit — bypassing the skill no longer bypasses the review. A `git-guardrails` hook blocks destructive git (`reset --hard`, `clean -f`, `push --force`, `add -A`); the review runtime re-checks any reviewer-introduced "fatal" finding before it counts.
+- **A real orchestration runtime.** Reviews fan out to forked specialist agents, reduce over a shared finding schema, judge with a hallucination gate, and loop until dry — see [`orchestrator-protocol.md`](.claude/rules/orchestrator-protocol.md).
+- **Ground truth as a process.** A mismatch isn't always a failure: a defensible, *named* alternative is recorded as `EXPLAINED` and carried into your response-to-referees, while genuine errors stay fail-closed.
+
+This is **not** an autonomous daemon — the loop is always you- or skill-initiated, and you stay the auditor. Scheduled [Routines](.claude/references/scheduled-routines.md) handle recurring chores (nightly reproducibility, weekly lit-delta, inbox triage) and notify only when they find something.
+
 ### Contractor Mode
 
-You describe a task. For complex or ambiguous requests, Claude first creates a requirements specification with MUST/SHOULD/MAY priorities and clarity status (CLEAR/ASSUMED/BLOCKED). You approve the spec, then Claude plans the approach and invokes the right skill (e.g. `/create-lecture`, `/qa-quarto`, `/review-paper --adversarial`). That skill implements the orchestrator pattern internally — implement, verify, review, fix, re-verify, score — and returns a summary when the work meets quality standards. Say "just do it" and it auto-commits when the score clears 80.
+You describe a task. For complex or ambiguous requests, Claude first creates a requirements specification with MUST/SHOULD/MAY priorities and clarity status (CLEAR/ASSUMED/BLOCKED). You approve the spec, then Claude plans the approach and invokes the right skill (e.g. `/create-lecture`, `/qa-quarto`, `/review-paper --adversarial`). That skill implements the orchestrator runtime internally — implement, verify, review, fix, re-verify, score — and returns a summary when the work meets quality standards. Say "just do it" and it runs the full loop; commits still require an explicit `/commit` (which the pre-commit hook then gates).
 
 ### Specialized Agents
 
@@ -91,7 +101,7 @@ Each is better at its narrow task than a generalist would be. The `/slide-excell
 
 ### Adversarial QA
 
-Two agents work in opposition: the **critic** reads both Beamer and Quarto and produces harsh findings. The **fixer** implements exactly what the critic found. They loop until the critic says "APPROVED" (or 5 rounds max). This catches errors that single-pass review misses.
+Two agents work in opposition: the **critic** reads both Beamer and Quarto and produces harsh findings. The **fixer** implements exactly what the critic found. They **loop until dry** — converging when a round surfaces no new issue (a 5-round cap is the fallback, not the primary stop). This catches errors that single-pass review misses.
 
 ### Quality Review
 
@@ -101,7 +111,7 @@ Every artifact gets a score (0–100). Scores below threshold halt the workflow 
 - **90** — PR threshold
 - **95** — excellence (aspirational)
 
-> **Framing honesty:** Thresholds are advisory at the harness level — the `/commit` skill runs quality checks and halts on failure, but there is no pre-commit git hook that blocks a direct `git commit`. If you bypass the skill, you bypass the review. For hard enforcement, configure a git pre-commit hook.
+> **Framing honesty:** Thresholds are advisory at the harness level — the `/commit` skill runs quality checks and halts on failure. **And** as of v2.0, running `./scripts/install-hooks.sh` once installs a real pre-commit hook (`.githooks/pre-commit`) that runs the surface-sync + quality (≥80) gates on *every* commit, so bypassing the skill no longer bypasses the review. Opt out per-commit with `SKIP_QUALITY_GATE=1` or `git commit --no-verify`.
 
 ### Context Survival
 
@@ -137,12 +147,12 @@ It covers:
 
 The guide covers Claude Code's latest capabilities:
 
-- **Model lineup** — **Opus 4.8** (`claude-opus-4-8`) is the newest model and the API default (GA 2026-05-28, $5/$25 per MTok, 1M context, defaults to `high` effort); Opus 4.7 is the prior generation. Sonnet 4.6 is the workhorse (1M context); Haiku 4.5 the fast tier. Sonnet 4 + original Opus 4 retire 2026-06-15 → migrate to Sonnet 4.6 / Opus 4.8. *(Verified against Anthropic docs 2026-05-31.)*
+- **Model lineup** — **Fable 5** (`claude-fable-5`, opt-in via `/model fable` or the `best` alias) is the most capable Claude Code model: Mythos-class, GA 2026-06-09, $10/$50 per MTok, 1M context (128k max output), built for long-horizon agentic work; it falls back to Opus 4.8 on flagged cyber/bio content and needs Claude Code ≥ 2.1.170. **Opus 4.8** (`claude-opus-4-8`) remains the API/account default (GA 2026-05-28, $5/$25 per MTok, 1M context, defaults to `high` effort) — and remains this template's routed high-judgment tier (see `model-routing.md` for why). Sonnet 4.6 is the workhorse (1M context); Haiku 4.5 the fast tier. Sonnet 4 + original Opus 4 retire 2026-06-15 → migrate to Sonnet 4.6 / Opus 4.8. *(Verified against Anthropic docs 2026-06-10.)*
 - **Effort levels** — `/effort` sets cost vs. thoroughness (`low` / `medium` / `high` / `xhigh` / `max`). **Opus 4.8 defaults to `high`** — its `high` does roughly what 4.7's `xhigh` did for fewer tokens, so reserve `xhigh` for extended exploration and `ultracode` (xhigh + dynamic workflows) for the largest autonomous runs.
 - **`/goal <verifiable condition>`** (v1.9.0; Anthropic May 2026) — keep working across turns until a fast model confirms the condition holds. Pairs with `/commit` quality gates for verified-end-state runs.
 - **`claude agents` dashboard** (v1.9.0; Anthropic May 2026) — single screen for parallel review work (`/review-paper --peer`, `/slide-excellence`).
 - **Cost-Conscious Composition** — prompt-cache TTL (5-min default on API keys; **1-hour automatic on Claude subscriptions**), 70/20/10 model routing (Haiku/Sonnet/Opus), `/cost` + `/usage` monitoring, Agent SDK credit-pool split (2026-06-15).
-- **Skill frontmatter** — `effort`, `context: fork`, `agent`, `hooks`, `disable-model-invocation` (v1.8.0+), and dynamic content (`$ARGUMENTS`, `!command` syntax)
+- **Skill frontmatter** — `effort`, `context: fork`, `agent`, `hooks`, `disable-model-invocation` (v1.8.0+), `disallowed-tools` (the *actual* tool restriction — `allowed-tools` only pre-approves), `paths` (glob-scoped auto-activation), and dynamic content (`$ARGUMENTS`, `!command` syntax)
 - **Permission modes** — Normal, Auto-accept, Plan, Auto (classifier-gated; on Team / Enterprise / API and rolling out to Max; needs Opus 4.6+ or Sonnet 4.6), Bypass
 - **Hook handler types** — command, prompt, and HTTP handlers with 20+ hook events; hooks see `effort.level` and `$CLAUDE_EFFORT` (Apr 2026 Week 19)
 - **Advanced agent configuration** — model, maxTurns, isolation, tool restrictions; `model-routing.md` rule codifies per-agent tier (v1.9.0)
@@ -178,10 +188,11 @@ This workflow is designed as a **single hub for an entire research program** —
 ## What's Included
 
 <details>
-<summary><strong>18 agents, 39 skills, 29 rules, 7 hooks</strong> (click to expand)</summary>
+<summary><strong>18 agents, 53 skills, 33 rules, 8 hooks</strong> (click to expand)</summary>
 
 ### Agents (`.claude/agents/`)
 
+<!-- surface-sync-table: agents -->
 | Agent | What It Does |
 |-------|-------------|
 | `proofreader` | Grammar, typos, overflow, consistency review |
@@ -205,6 +216,7 @@ This workflow is designed as a **single hub for an entire research program** —
 
 ### Skills (`.claude/skills/`)
 
+<!-- surface-sync-table: skills -->
 | Skill | What It Does |
 |-------|-------------|
 | `/compile-latex` | 3-pass XeLaTeX compilation with bibtex |
@@ -214,7 +226,7 @@ This workflow is designed as a **single hub for an entire research program** —
 | `/visual-audit` | Launch slide-auditor on a file |
 | `/pedagogy-review` | Launch pedagogy-reviewer on a file |
 | `/review-r` | Launch R code reviewer |
-| `/qa-quarto` | Adversarial critic-fixer loop (max 5 rounds) |
+| `/qa-quarto` | Adversarial critic-fixer loop (loops until dry; 5-round cap is a fallback) |
 | `/slide-excellence` | Combined multi-agent review |
 | `/translate-to-quarto` | Full 11-phase Beamer-to-Quarto translation |
 | `/validate-bib` | Cross-reference citations against bibliography |
@@ -238,14 +250,28 @@ This workflow is designed as a **single hub for an entire research program** —
 | `/preregister` | Generate a preregistration document (OSF / AsPredicted / AEA RCT Registry style) from a research spec |
 | `/verify-claims` (v1.7.0) | Chain-of-Verification fact-check (forked verifier, fresh context). HIGH/MED/LOW-WARN severity tiers (v1.9.0); HIGH-WARN gate-refuses `/commit`. |
 | `/humanize` (v1.9.0) | Detect AI-voice tells in academic prose (10 detection categories; read-only, no rewrite) |
-| `/prompt` (v1.9.0) | Reformat informal/dictated input into a structured six-section prompt, then execute (ported from Blattman with stripping) |
-| `/prompt-only` (v1.9.0) | Same formatting as `/prompt` but emits the prompt as a reusable artifact (no execution) |
 | `/compress-session` (v1.9.0) | Distil current session into structured notes (decisions, next actions, *discarded-as-noise*) before auto-compaction |
 | `/promote-memory` (v1.9.0) | Five-critic council that votes on which `[LEARN]` entries graduate from personal-memory.md to MEMORY.md |
 | `/stata-replication` (v1.9.0) | End-to-end Stata pipeline via the `stata-mcp` MCP server (mirrors `/data-analysis` for R-first projects) |
 | `/codex` | Drive the OpenAI Codex CLI (`codex exec` / `resume --last`) for a task, choosing model / effort / sandbox, then critically evaluate its output as a peer |
 | `/simulation-study` (v1.10.0) | Scaffold + run a reproducible Monte Carlo study — parameterized DGP, estimator grid, seeded replications, bias/RMSE/coverage/size/power with Monte Carlo SEs |
 | `/r-package-check` (v1.10.0) | R package release gate — `devtools::document()` + tests + `R CMD check --as-cran`, triage ERROR/WARNING/NOTE vs CRAN policy, `r-package-reviewer` pass |
+| `/replication-package` (v2.0) | Assemble a submission-ready DCAS / openICPSR replication package — standard README, dataset manifest, computational-requirements capture, Table/Figure → script:line map, confidential-data deposit note (blocks on `/audit-reproducibility` FAIL) |
+| `/capture-environment` (v2.0) | Snapshot the computational environment for a replication package — renv.lock + sessionInfo.txt (R), requirements.txt / environment.yml / uv.lock (Python), Stata version + ado list, seeds/RNG, optional pinning Dockerfile |
+| `/did-event-study` (v2.0) | Thin wrapper for staggered DiD / event-study via canonical packages (Callaway–Sant'Anna `did`, Sun–Abraham `fixest::sunab`, HonestDiD sensitivity; Stata equivalents) — surfaces each package's native diagnostics, never reimplements an estimator |
+| `/power-analysis` (v2.0) | Power / required-N / minimum-detectable-effect for study design — two-arm RCT (clustering/ICC, unequal allocation), multi-arm corrections, simulation-based power for non-standard designs; feeds `/preregister` |
+| `/disclosure-check` (v2.0) | Statistical-disclosure-limitation pre-screen for restricted/confidential-data outputs (small cells, complementary-suppression gaps, dominance, PII); CRITICAL/WARNING/OK + gate |
+| `/grant-proposal` (v2.0) | Scaffold an NSF/NIH/ERC/foundation grant proposal by composing primitives (spec → aims/methods, delegated DMP + facilities, coherence pass + requirements checklist) |
+| `/data-management-plan` (v2.0) | Funder-compliant Data Management Plan (NSF / NIH DMS 2023 / ERC / Horizon Europe) — folds in disclosure-avoidance + IRB constraints and a replication-package/environment plan; outputs a draft + funder checklist |
+| `/coauthor-brief` (v2.0) | Collaborator handoff brief — what changed since last brief, per-artifact state, open questions, reproduce-locally + restricted-data access steps |
+| `/triage-inbox` (v2.0) | Schedulable academic inbox + calendar triage via Gmail/Calendar MCP — classifies referee requests, R&R/editor, co-author threads, seminar/conference invites, grant/admin deadlines; proposes one human-gated action each (draft reply, calendar hold, `/new-referee-project`, `/coauthor-brief`, snooze); emits a digest + referee-obligations tracker; degrades gracefully when MCP is absent; never auto-sends |
+| `/diagnose` (v2.0) | Root-cause a wrong/failing empirical result — disciplined reproduce → minimise → hypothesise → instrument → fix loop; tuned for research-code bugs (type coercion, NA/merge blow-ups, clustering/SE choice, seed/package-version drift); `--no-fix` localizes without editing |
+| `/submission-disclosures` (v2.1) | The submission-time disclosure block: AI-use disclosure matched to the target journal's verified-current policy, CRediT contributor roles, conflict-of-interest, and data-availability statements (NOT statistical disclosure — that's `/disclosure-check`) |
+| `/syllabus` (v2.0) | Build/restructure a course syllabus from a topic or reading list — course description + prerequisites, week-by-week schedule (topic→readings→deliverables), measurable learning objectives, assessment scheme + rubric, standard policies (late work / AI use / integrity / accessibility), and a per-week work-list mapping weeks to `/create-lecture` decks; economics-aware (PhD metrics/micro/macro sequences, undergrad) |
+| `/teach-from-paper` (v2.0) | Reads a paper end-to-end and pitches it to a stated audience level — lecture outline (motivation → setup → key result → method → takeaways), the 3-5 results worth presenting with intuition, a slide skeleton for `/create-lecture`, discussion questions, and a problem-set brief for `/scaffold-exercises` |
+| `/respond-to-eval` (v2.0) | Teaching analogue of `/respond-to-referees` — clusters course-eval comments into themes, weights by frequency (signal vs noise), classifies Keep / Change / Investigate / Out-of-scope, and drafts concrete changes mapped to the syllabus + slide decks; saves the plan to `quality_reports/teaching/` |
+| `/scaffold-exercises` (v2.0) | Scaffold a graded problem set across analytical/empirical/coding types, with worked solutions and "why this matters" explainers emitted to a separate solution key |
+| `/new-skill` (v2.0) | Scaffold a new skill that follows this repo's conventions — interviews for purpose, triggers, and tools, writes `.claude/skills/<name>/SKILL.md` from the template with frontmatter/body that pass `check-skill-integrity.py` first try, then reminds to add the surface-table rows |
 
 ### Research Workflow
 
@@ -268,10 +294,11 @@ Rules use path-scoped loading: **always-on** rules load every session (~100 line
 | Rule | What It Enforces |
 |------|-----------------|
 | `plan-first-workflow` | Plan mode for non-trivial tasks + context preservation |
-| `orchestrator-protocol` | Contractor mode: implement → verify → review → fix → score |
+| `orchestrator-protocol` | Goal-first review runtime: fan-out → reduce → judge (+ hallucination gate) → loop-until-dry (the contractor loop, now a real runtime) |
 | `session-logging` | Three logging triggers: post-plan, incremental, end-of-session |
 | `meta-governance` | Template vs. working project distinctions |
 | `writing-style` | No em dashes in generated prose (AI-voice tell); preventive companion to `/humanize` |
+| `prompt-shaping` (v2.0) | Ambient habit — shape informal/ambiguous requests before acting (replaces the retired `/prompt` + `/prompt-only` skills) |
 
 **Path-scoped** (load only when working on matching files):
 
@@ -301,6 +328,9 @@ Rules use path-scoped loading: **always-on** rules load every session (~100 line
 | `stata-code-conventions` (v1.9.0) | `**/*.do`, `code/stata/**` | Stata header scaffold, numbered pipeline, esttab, clustering discipline, AEA compliance |
 | `simulation-conventions` (v1.10.0) | `**/*simulation*.R`, `**/*_sim.R`, `explorations/**` | Monte Carlo discipline: DGP/estimand, L'Ecuyer seeding, Monte Carlo SE, coverage-vs-truth, raw-result storage |
 | `r-package-conventions` (v1.10.0) | `R/**`, `tests/**`, `DESCRIPTION`, `NAMESPACE`, `man/**` | R package-source standards: no `library()` in `R/`, roxygen NAMESPACE, Imports/Suggests, testthat 3e, CRAN policy |
+| `confidential-data` (v2.0) | `data/**`, `**/*.dta`, `**/restricted/**`, `**/confidential/**` | Restricted/IRB-data protocol: never commit raw data, disclosure clearance before release, restricted-data-safe multi-author git topology |
+| `did-conventions` (v2.0) | `**/*did*.R`, `**/*event*study*.R`, `**/*att_gt*`, `**/*csdid*.do`, `**/*drdid*` | DiD/event-study standards (Sant'Anna): LONG data + gname coding, doubly-robust default, control-group rule, uniform-band inference, mandatory pre-trend/HonestDiD/didFF diagnostics, replicate-and-verify-to-1e-6 |
+| `inference-robustness` (v2.0) | `scripts/**/*.R`, `**/*.do`, `**/*.py` | Multiple-testing (FWER/Romano-Wolf vs FDR/Anderson sharpened-q, pre-register the family) + specification-curve / leave-one-out / wild-cluster-bootstrap robustness |
 
 ### Templates (`templates/`)
 
@@ -389,7 +419,7 @@ See the [guide's ecosystem section](https://psantanna.com/claude-code-my-workflo
 
 - **What's new:** see [CHANGELOG.md](CHANGELOG.md). We follow loose semver — breaking changes get major bumps so you can decide when to pull updates.
 - **How to contribute:** see [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md). PRs welcome for generalizable improvements; fork-specific work stays in your fork.
-- **Pin to a version:** `git checkout v1.10.0` (current as of 2026-05-31).
+- **Pin to a version:** `git checkout v2.0.0` (current as of 2026-06-09).
 
 ---
 
