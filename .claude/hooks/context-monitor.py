@@ -16,12 +16,15 @@ Claude's context). Plain stdout would reach Claude but NOT the user, and would
 carry literal ANSI escape codes as noise — so we emit clean structured JSON.
 See https://code.claude.com/docs/en/hooks.
 
-Context %% is a COARSE PROXY. When the hook receives a `transcript_path`, we
-estimate tokens from the transcript size against CLAUDE_CONTEXT_WINDOW_TOKENS
-(default 1,000,000 — the current Opus 4.8 / Sonnet 4.6 default). Otherwise we
-fall back to a tool-call counter (CLAUDE_CONTEXT_MAX_TOOL_CALLS, default 400).
-Neither is exact; treat the percentage as a rough early-warning signal, not a
-precise gauge.
+Context usage is an estimate. When the hook receives a `transcript_path`, we read
+the most recent main-chain assistant message's token usage (input + cache-read +
+cache-creation) — the live context occupancy — against CLAUDE_CONTEXT_WINDOW_TOKENS
+(default 1,000,000 — the current Opus 4.8 / Sonnet 4.6 default). Because a /compact
+shrinks that turn's input, this RESETS after compaction, unlike a transcript-size
+proxy (the .jsonl is append-only and only grows, so size climbs forever). If usage
+can't be parsed we fall back to transcript file size; with no transcript at all, to a
+tool-call counter (CLAUDE_CONTEXT_MAX_TOOL_CALLS, default 400). Treat it as an
+early-warning signal, not a precise gauge.
 """
 
 from __future__ import annotations
@@ -44,6 +47,7 @@ THROTTLE_INTERVAL = 60
 DEFAULT_CONTEXT_WINDOW_TOKENS = 1_000_000   # Opus 4.8 / Sonnet 4.6 default window
 DEFAULT_MAX_TOOL_CALLS = 400                 # fallback proxy when transcript size is unavailable
 APPROX_BYTES_PER_TOKEN = 4.0
+TRANSCRIPT_TAIL_BYTES = 512 * 1024           # how much of the transcript tail to scan for the latest usage
 
 
 def _env_int(name: str, default: int) -> int:
@@ -88,18 +92,68 @@ def save_cache(data: dict) -> None:
         pass
 
 
+def latest_context_tokens(transcript_path: str) -> int | None:
+    """Current context occupancy in tokens, or None if it can't be determined.
+
+    Reads the most recent main-chain (non-sidechain) assistant message's `usage`
+    and sums input + cache-read + cache-creation tokens — the number of tokens
+    actually fed to the model on the last turn. Because a /compact shrinks that
+    turn's input, this value RESETS after compaction; the transcript file size
+    does not (it is append-only), which is why size is a misleading proxy.
+
+    Only the tail of the file is read: the latest assistant message is always near
+    the end, so this avoids loading a multi-MB transcript on every PostToolUse.
+    """
+    try:
+        size = os.path.getsize(transcript_path)
+        with open(transcript_path, "rb") as fh:
+            if size > TRANSCRIPT_TAIL_BYTES:
+                fh.seek(size - TRANSCRIPT_TAIL_BYTES)
+                fh.readline()  # discard the partial first line after seeking
+            raw = fh.read()
+    except OSError:
+        return None
+
+    for line in reversed(raw.decode("utf-8", errors="replace").splitlines()):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if entry.get("isSidechain"):
+            continue  # subagent turns have their own context, not the main thread's
+        usage = (entry.get("message") or {}).get("usage")
+        if not usage:
+            continue
+        total = (
+            usage.get("input_tokens", 0)
+            + usage.get("cache_read_input_tokens", 0)
+            + usage.get("cache_creation_input_tokens", 0)
+        )
+        if total > 0:
+            return total
+    return None
+
+
 def estimate_context_percentage(hook_input: dict) -> float:
     """
-    Estimate context usage as a percentage (0-100). COARSE PROXY.
+    Estimate context usage as a percentage (0-100).
 
-    Preferred: a token estimate from the transcript file size against the model's
-    context window (CLAUDE_CONTEXT_WINDOW_TOKENS). Fallback when no transcript is
-    available: a tool-call counter (CLAUDE_CONTEXT_MAX_TOOL_CALLS). Neither is exact.
+    Preferred: the live context occupancy from the most recent assistant message's
+    token usage (see `latest_context_tokens`), which resets after a /compact.
+    Fallbacks: transcript file size (coarse; does not reset), then a tool-call
+    counter (CLAUDE_CONTEXT_MAX_TOOL_CALLS) when no transcript is available.
     """
     window = _env_int("CLAUDE_CONTEXT_WINDOW_TOKENS", DEFAULT_CONTEXT_WINDOW_TOKENS)
 
     transcript_path = hook_input.get("transcript_path", "")
     if transcript_path:
+        tokens = latest_context_tokens(transcript_path)
+        if tokens is not None:
+            return min(tokens / window * 100, 100)
+        # Fallback: transcript file size (coarse; does NOT reset after /compact).
         try:
             size_bytes = os.path.getsize(transcript_path)
             approx_tokens = size_bytes / APPROX_BYTES_PER_TOKEN
