@@ -1,75 +1,85 @@
 #!/usr/bin/env bash
-# Claude Code statusLine — mirrors ~/.claude/statusline-command.sh
-# Segments: directory → git branch+status → model → effort → context % → time
+# Claude Code status line: shows permission mode, model, and git branch.
+#
+# Claude Code pipes a JSON session snapshot to stdin. Relevant keys:
+#   .model.display_name      e.g. "Opus <version>"
+#   .permission_mode         e.g. "bypassPermissions" | "plan" | "acceptEdits" | "default"
+#   .workspace.current_dir   absolute path of the cwd
+#
+# Design goal: always show permission mode so prompt-fatigue is diagnosable at a glance.
 
-input=$(cat)
+set -euo pipefail
 
-cwd=$(echo "$input" | jq -r '.cwd // .workspace.current_dir // ""')
-model=$(echo "$input" | jq -r '.model.display_name // ""')
-used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
-project_dir=$(echo "$input" | jq -r '.workspace.project_dir // ""')
+INPUT="$(cat)"
 
-# Effort level: prefer input JSON, fall back to user settings.json
-effort=$(echo "$input" | jq -r '.effortLevel // .effort_level // .model.effort // empty' 2>/dev/null)
-if [ -z "$effort" ] && [ -f "$HOME/.claude/settings.json" ]; then
-  effort=$(jq -r '.effortLevel // empty' "$HOME/.claude/settings.json" 2>/dev/null)
+# Parse all three fields in a single python3 invocation. Status line renders
+# on every turn; avoid three forks when one suffices.
+parsed="$(printf '%s' "$INPUT" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    d = {}
+print(d.get('permission_mode', '?'))
+print((d.get('model') or {}).get('display_name', '?'))
+print((d.get('workspace') or {}).get('current_dir', '.'))
+" 2>/dev/null || printf '?\n?\n\n')"
+
+mode="$(printf '%s' "$parsed" | sed -n '1p')"
+model="$(printf '%s' "$parsed" | sed -n '2p')"
+cwd="$(printf '%s' "$parsed" | sed -n '3p')"
+[ -n "$mode" ] || mode="?"
+[ -n "$model" ] || model="?"
+[ -n "$cwd" ] && [ "$cwd" != "." ] || cwd="$(pwd)"
+
+case "$mode" in
+    bypassPermissions) mode_badge="[BYPASS]" ;;
+    acceptEdits)       mode_badge="[AUTO-EDIT]" ;;
+    plan)              mode_badge="[PLAN]" ;;
+    default)           mode_badge="[PROMPT]" ;;
+    *)                 mode_badge="[$mode]" ;;
+esac
+
+# Optional enrichment (branch, dirty count, plan status, context %).
+# Wrapped in `set +e` so a probe failure can never blank the status line.
+set +e
+branch=""
+dirty=""
+if [ -d "$cwd/.git" ] || git -C "$cwd" rev-parse --git-dir >/dev/null 2>&1; then
+    branch="$(git -C "$cwd" branch --show-current 2>/dev/null)"
+    n="$(git -C "$cwd" status --porcelain 2>/dev/null | grep -c '.')"
+    [ "${n:-0}" -gt 0 ] 2>/dev/null && dirty="±${n}"
 fi
 
-# Directory: truncate to 3 segments, prefer repo-relative
-dir_display=""
-if [ -n "$cwd" ]; then
-  if [ -n "$project_dir" ] && [ "$project_dir" != "null" ] && [[ "$cwd" == "$project_dir"* ]]; then
-    rel="${cwd#$project_dir}"
-    rel="${rel#/}"
-    project_name=$(basename "$project_dir")
-    if [ -z "$rel" ]; then
-      dir_display="$project_name"
-    else
-      dir_display="$project_name/$rel"
+# Most-recent plan's status (DRAFT / APPROVED / COMPLETED).
+plan_badge=""
+latest_plan="$(ls -t "$cwd"/quality_reports/plans/*.md 2>/dev/null | head -1)"
+if [ -n "$latest_plan" ]; then
+    if   grep -qi 'COMPLETED' "$latest_plan" 2>/dev/null; then plan_badge="plan:done"
+    elif grep -qi 'APPROVED'  "$latest_plan" 2>/dev/null; then plan_badge="plan:approved"
+    elif grep -qi 'DRAFT'     "$latest_plan" 2>/dev/null; then plan_badge="plan:DRAFT"
     fi
-  else
-    dir_display="$cwd"
-  fi
-  seg_count=$(echo "$dir_display" | tr -cd '/' | wc -c)
-  if [ "$seg_count" -gt 2 ]; then
-    dir_display="…/$(echo "$dir_display" | rev | cut -d'/' -f1-3 | rev)"
-  fi
 fi
 
-# Git branch + status
-git_info=""
-if [ -n "$cwd" ] && git -C "$cwd" rev-parse --git-dir >/dev/null 2>&1; then
-  branch=$(git -C "$cwd" symbolic-ref --short HEAD 2>/dev/null || git -C "$cwd" rev-parse --short HEAD 2>/dev/null)
-  if [ -n "$branch" ]; then
-    modified=$(git -C "$cwd" diff --name-only 2>/dev/null | wc -l | tr -d ' ')
-    staged=$(git -C "$cwd" diff --cached --name-only 2>/dev/null | wc -l | tr -d ' ')
-    untracked=$(git -C "$cwd" ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
-    status_str=""
-    [ "$staged" -gt 0 ]    && status_str="${status_str}+${staged}"
-    [ "$modified" -gt 0 ]  && status_str="${status_str}!${modified}"
-    [ "$untracked" -gt 0 ] && status_str="${status_str}?${untracked}"
-    if [ -n "$status_str" ]; then
-      git_info=" $branch $status_str"
-    else
-      git_info=" $branch"
-    fi
-  fi
+# Context % — best-effort, persisted by context-monitor.py under the
+# session dir keyed by md5(project_dir)[:8].
+ctx=""
+# Mirror context-monitor.py's get_session_dir() EXACTLY: CLAUDE_PROJECT_DIR set →
+# hash it; unset/empty → the writer falls back to sessions/default/, so do the same
+# (hashing the git toplevel here would point at the wrong folder on that path).
+if [ -n "${CLAUDE_PROJECT_DIR:-}" ]; then
+    hash="$(printf '%s' "$CLAUDE_PROJECT_DIR" | python3 -c 'import sys,hashlib; print(hashlib.md5(sys.stdin.read().encode()).hexdigest()[:8])' 2>/dev/null)"
+else
+    hash="default"
 fi
+pct_file="$HOME/.claude/sessions/${hash}/context-pct.txt"
+[ -f "$pct_file" ] && ctx="ctx $(cat "$pct_file" 2>/dev/null)%"
+set -e
 
-# Time
-time_str=$(date +%H:%M)
+line="$mode_badge  $model"
+[ -n "$branch" ] && line="$line  @ $branch"
+[ -n "$dirty" ] && line="$line $dirty"
+[ -n "$plan_badge" ] && line="$line  $plan_badge"
+[ -n "$ctx" ] && line="$line  $ctx"
 
-# Context usage
-ctx_str=""
-if [ -n "$used_pct" ]; then
-  ctx_str=$(printf " ctx:%.0f%%" "$used_pct")
-fi
-
-# Output with ANSI colors
-printf '\033[36m%s\033[0m' "$dir_display"
-[ -n "$git_info" ] && printf ' \033[35m%s\033[0m' "$git_info"
-[ -n "$model" ]    && printf ' \033[33m%s\033[0m' "$model"
-[ -n "$effort" ]   && printf ' \033[32meffort:%s\033[0m' "$effort"
-[ -n "$ctx_str" ]  && printf '\033[33m%s\033[0m' "$ctx_str"
-printf ' \033[2;37m%s\033[0m' "$time_str"
-printf '\n'
+printf '%s' "$line"

@@ -87,8 +87,6 @@ Words and phrases statistically over-represented in LLM output relative to acade
 
 **Severity:** MED. Em-dashes are a legitimate authorial choice; flag overuse, not all use.
 
-> **Note (this fork):** the always-on [`writing-style`](../../rules/writing-style.md) rule already prevents Claude from *generating* em dashes at all. That rule is the preventive layer; this detector is the review-time layer for prose that already exists (including human-written or externally-sourced text). They are complementary.
-
 ### 4. SYMMETRIC PARAGRAPH SHAPES
 
 Paragraphs with the same micro-architecture: topic sentence → three examples → summarising clause. Repeated across consecutive paragraphs is the AI tell — not the shape itself.

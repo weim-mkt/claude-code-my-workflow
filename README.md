@@ -188,7 +188,7 @@ This workflow is designed as a **single hub for an entire research program** —
 ## What's Included
 
 <details>
-<summary><strong>18 agents, 53 skills, 33 rules, 8 hooks</strong> (click to expand)</summary>
+<summary><strong>18 agents, 53 skills, 32 rules, 8 hooks</strong> (click to expand)</summary>
 
 ### Agents (`.claude/agents/`)
 
@@ -297,7 +297,6 @@ Rules use path-scoped loading: **always-on** rules load every session (~100 line
 | `orchestrator-protocol` | Goal-first review runtime: fan-out → reduce → judge (+ hallucination gate) → loop-until-dry (the contractor loop, now a real runtime) |
 | `session-logging` | Three logging triggers: post-plan, incremental, end-of-session |
 | `meta-governance` | Template vs. working project distinctions |
-| `writing-style` | No em dashes in generated prose (AI-voice tell); preventive companion to `/humanize` |
 | `prompt-shaping` (v2.0) | Ambient habit — shape informal/ambiguous requests before acting (replaces the retired `/prompt` + `/prompt-only` skills) |
 
 **Path-scoped** (load only when working on matching files):
