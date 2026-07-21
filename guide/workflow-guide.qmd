@@ -1272,7 +1272,7 @@ For details on how the system automatically preserves and restores context durin
 
 ### Session Logging
 
-Session logs (`quality_reports/session_logs/YYYY-MM-DD_description.md`) are a running record of *why* things happened. They have **three distinct behaviors**, each solving a different problem:
+Session logs (`quality_reports/session_logs/`) are a running record of *why* things happened. Two kinds live there: narrative logs you or Claude write deliberately (`YYYY-MM-DD_description.md`), and mechanical entries the Stop hook appends on its own (`YYYY-MM-DD_auto_<topic>.md`). The `_auto_` marker keeps them in separate namespaces. Narrative logs have **three distinct behaviors**, each solving a different problem:
 
 **After plan approval** --- create the log with the goal, plan summary, and rationale for the chosen approach (including rejected alternatives). This captures decisions while context is richest. If you wait, auto-compression may discard the reasoning.
 
@@ -1289,6 +1289,20 @@ Session logs (`quality_reports/session_logs/YYYY-MM-DD_description.md`) are a ru
 :::
 
 Claude writes all three log entries automatically --- no need to ask.
+
+::: {.callout-note collapse="true"}
+## How the auto-log gets its name
+
+The Stop hook names its file after the work, not after the clock, so a log says what the session was about: `2026-07-19_auto_b1-sample-window-rerun.md`.
+
+`<topic>` is the newest plan in `quality_reports/plans/` not marked COMPLETED, dated by its `YYYY-MM-DD_` filename prefix rather than by mtime (a sync or checkout rewrites mtime on every plan at once, which both destroys the ordering and makes an abandoned plan look fresh). A plan older than 14 days, or one with no date prefix, is ignored --- naming today's log after stale work is worse than a bland name, because it reads as fact. With no usable topic the hook falls back to the branch.
+
+Two guarantees are worth knowing about:
+
+**The `_auto_` marker is not decorative.** Narrative logs get named after the same work the plan describes, so the two namespaces genuinely converge. Without the marker the hook would append change-set dumps into prose you wrote.
+
+**In a repo with more than one worktree, the branch is always in the name.** A worktree is a full checkout, so it inherits `quality_reports/plans/` --- two trees doing different work routinely compute the same topic, and two trees with no fresh plan compute no topic at all. Git refuses to check one branch out in two worktrees, which is what makes the branch the field that can carry the guarantee. In a single-worktree repo no second tree exists to collide with, so the branch is omitted and the name stays clean.
+:::
 
 ::: {.callout-tip collapse="true"}
 ## Weekly Reviews
