@@ -113,7 +113,7 @@ template repository and publishes the user's paper/coursework PR publicly there.
 
 ```bash
 git push -u origin <branch-name>
-gh pr create --repo <HOST>/<OWNER>/<NAME> --title "<short title>" --body "$(cat <<'EOF'
+gh pr create --repo <HOST>/<OWNER>/<NAME> --base main --head <branch-name> --title "<short title>" --body "$(cat <<'EOF'
 ## Summary
 <1-3 bullet points>
 
@@ -174,7 +174,7 @@ behavior the check exists to prevent.
 
 - **Never skip Step 0.** Quality gates catch broken compilation, bad citations, and hardcoded paths before they reach `main`. If the user insists on skipping, record their override reason in the commit message.
 - Never commit directly to `main`; branch off it first.
-- Never push, open a pull request, or merge unless asked — see Step 5 and "Merging".
+- Never push, open a pull request, or merge unless asked — see Step 5 and "Merging". A prior `/commit` invocation does not authorize a later push; the opt-in is per invocation.
 - Exclude `settings.local.json` and sensitive files from staging.
 - When the user does ask to merge, use `--merge` (not `--squash` or `--rebase`) unless they say otherwise.
 - If the commit message from `$ARGUMENTS` is provided, use it exactly.
