@@ -75,6 +75,8 @@ When a mistake is corrected, append a `[LEARN:category]` entry below; most recen
 
 [LEARN:drift] Guard against false positives when scanning for template counts: `"3 parallel agents"`, `"17 specialized agents"` (clo-author attribution), `"start with 2-3 skills"` are all legitimate non-template uses of `N + category` phrases. Use compound patterns requiring multiple template-specific tokens on the same line.
 
+[LEARN:audit] A path-exclusion filter on `grep` output must be anchored to the path field, not the whole line. A drift scan that pipes `grep -rn` output (`path:lineno:content`) through `grep -vE "$EXCLUDES"` (where `EXCLUDES` lists archival paths like `quality_reports/`) will silently drop any *content* line that merely mentions an excluded token (e.g. a guide sentence referencing `quality_reports/`) unless the exclude is anchored to the path prefix: `grep -vE "^[^:]*$EXCLUDES"`. Sibling lesson: a scan's `--include` list must cover **every** file type that can carry a path (`*.yaml`, `.gitignore`, etc.), or refs there slip through regardless of the exclude bug. (Learned from the fork's `code/` drift guard, which was removed 2026-06-21 when the fork adopted upstream's `scripts/R/` convention.)
+
 ## Claude Code Hooks
 
 [LEARN:hooks] Stop-hook block protocol has TWO valid forms: (a) legacy — `exit 2` + reason on stderr; (b) modern — `exit 0` + JSON `{"decision":"block","reason":"..."}` on stdout. `log-reminder.py` uses the modern form. Audit agents unfamiliar with the modern protocol will flag this as "should exit 2" — false alarm. Documented in `/deep-audit` skill's false-alarm list.
@@ -167,6 +169,12 @@ The key insight: each enforces independence differently — role tension, depend
 
 [LEARN:workflow] **Surface-sync must check enumerative tables, not just counts.** Count assertions catch "N skills" drift but not missing table rows (the v1.5.0 agent trio was absent from README for 3 releases; the guide appendix shipped 58 of 60 rows in v2.5 until a semantic sweep caught it). Every skill/agent addition: update count assertions AND the guide appendix AND the README table.
 
+[LEARN:design] **A skill that wraps a fast-moving external CLI should default to the tool's own default model/version, not hard-code a list.** The `/codex` skill first enumerated `gpt-5.x` model names that go stale and make commands fail (caught when the user said "models change all the time, use the default"). Fixed in codex SKILL v1.2.0: Step 1 omits `-m` by default (use the CLI default); the user names a model only via "Other". Generalises to any tool-wrapping skill: avoid baking in model names, version flags, or endpoints that the upstream tool revises on its own cadence.
+
+[LEARN:design] **A skill that passes arbitrary or user-supplied text to a shell command must use a *quoted* here-doc (`<<'EOF' … EOF`), never a double-quoted argument.** The shell expands `$(...)`, backticks, `$VAR`, and quotes inside a double-quoted arg before the tool sees them (an injection + corruption risk); a quoted-delimiter here-doc passes the body verbatim and closes stdin, so a stdin-reading CLI never blocks. Surfaced in a Codex review of `/codex` (plans/prompts routinely contain shell metacharacters). Applies to any skill that shells out with dynamic content.
+
+[LEARN:design] **When a CLI wrapper resumes a session, pin the explicit session id, not "resume --last".** "Last/latest" resolves to the globally-newest recorded session (in `codex`, filtered only by cwd), so two concurrent callers sharing a directory can resume each other's thread. Capture the id on the first call (`codex` prints `session id: <uuid>` on stderr; grep it, no `--json` needed) and pass it to every resume; keep `--last` as a single-session fallback. Surfaced when the user asked whether parallel Claude sessions resume the right Codex session (codex SKILL v1.7.0). Generalises to any tool with a `--last`/`--latest` resume convenience. **Companion gotcha (v1.7.1–1.7.3, verified live + Codex-flagged across three reviews):** `codex exec resume` inherits the *conversation history* but NOT the *runtime config*: working directory, model, reasoning effort, and sandbox all silently revert to CLI/`config.toml`/shell-cwd defaults (in a trusted git repo the sandbox default is `workspace-write`, so a `read-only` session comes back writable; a `-C`-pinned session comes back in the shell's cwd, so a `workspace-write` follow-up can edit the wrong repo). Capture all five coordinates from the stderr header on the first run (`workdir`, `model`, `sandbox`, `reasoning effort`, `session id`), reading the *resolved* model name even when you let the CLI default rather than the word "default", then replay them on every resume: `-C <WORKDIR>` before `resume`, `-m`, `--config model_reasoning_effort=`, and `-c 'sandbox_mode="…"'` after it (`resume` rejects `--sandbox`). Fail closed if any coordinate is empty. Lesson: never assume a wrapper's resume/continue re-applies the original per-invocation flags; verify, then replay them explicitly.
+
 ## v2.5 Cycle Lessons (2026-08-21)
 
 [LEARN:process] **Plan mode is not optional on a vague, multi-hour ask.** A vague "update our workflow" session with no plan mode, no spec, no `AskUserQuestion` paid the documented 30-50% rework: north star, guide plan, version scheme, and phase framing all rewritten mid-flight — each fixable by a 5-question spec in one turn. **Trigger: vague ask, multiple readings, >1 hour or >3 files → spec first, via `AskUserQuestion`.**
@@ -194,3 +202,27 @@ The key insight: each enforces independence differently — role tension, depend
 [LEARN:audit] **Gate every number you publish — including in the release that adds the rule.** A release stating *a count is a computation, not a reading* shipped three counts of its own test battery: one agent wrote the prose while another was still adding cases. **Sequence the change and its count — never parallelize them — and make the count derived**, so a checker recomputing it from source turns silent drift into a red gate.
 
 [LEARN:safety] **When a check keeps leaking, stop patching cases — stop predicting.** A clean-tree guard tried to infer from a chained command whether the tree would still be dirty by the merge. Enumerating safe forms leaked; deny-on-doubt leaked less but still leaked, because each round found one more unmodelled dimension — flags, subcommands, segments, redirection, substitution — then a semantic one: `git stash` does not stash untracked files, so a correctly-parsed *this cleans the tree* was false. Deleting the prediction was necessary and not sufficient: a reading taken before execution proves only that the tree was clean when the command was *authorized*, and a referee chained a write ahead of the op on a clean tree. The class closed only once the op was also required to be a **standalone simple command** — nothing left on the line that could write in between. **Predicting an effect you could measure is itself the defect — and a measurement taken before the effect is not a measurement of it.**
+
+## Fork Conventions (weim-mkt)
+
+[LEARN:feedback] `/commit` is local-only by default. Stop after `git commit`; do NOT push, open a PR, merge, or pull main unless the user explicitly asks in the same turn ("push", "open a PR", "merge", or `--push`/`--pr`/`--merge` flag).
+
+**Why:** The user wants explicit gating between local commit and any operation that affects the remote (origin) or shared state (main). A prior `/commit` call does not authorize a later push. Documented in [.claude/skills/commit/SKILL.md](.claude/skills/commit/SKILL.md) Step 5.
+
+**How to apply:**
+- After `git commit`, report the hash and branch, then stop.
+- When opening a PR (only on explicit request), default `gh pr create --repo <user>/<repo>` to the user's fork, not upstream — `gh` defaults to the parent repo, which is usually wrong.
+
+[LEARN:feedback] This fork follows upstream's `scripts/R/` convention for R analysis paths (R at `scripts/R/`, Stata at `scripts/stata/`, Python at `scripts/python/`, outputs in `scripts/R/_outputs/`). The earlier `./code/` migration was reverted on 2026-06-21 to eliminate divergence from `pedrohcgs/claude-code-my-workflow`; the `check-code-path.sh` drift guard and `.githooks/post-merge` that policed the old `code/` convention were removed at the same time.
+
+**Why:** Aligning with upstream's path convention means upstream's analysis skills (`/data-analysis`, `/stata-replication`, `/audit-reproducibility`, `/replication-package`, `/simulation-study`, etc.) work as shipped and never drift on merge.
+
+**How to apply:**
+- Reference `scripts/R/` (and `scripts/stata/`, `scripts/python/`) for analysis paths, never `code/`.
+- No drift guard is needed: upstream already uses these paths, so merges no longer reintroduce a conflicting convention.
+
+[LEARN:feedback] `/codex` is a **personal** skill, not a repo skill: it lives at `~/.claude/skills/codex/` so it loads in every project, and this repo's skill inventory stays identical to upstream's. It was moved out of `.claude/skills/` during the v2.5.1 sync (2026-08-24); the `WRAPPED_CLI_FLAGS` exemption in `scripts/check-skill-integrity.py` went with it, since nothing in the repo wraps an external CLI any more.
+
+**Why:** every fork-only skill is a permanent count divergence from upstream and a recurring merge conflict across README, CLAUDE.md, the guide appendix, and the CHANGELOG inventory line. A personal skill costs none of that.
+
+**How to apply:** put a skill in `~/.claude/skills/` when it is yours and generic; put it in `.claude/skills/` only when it is genuinely part of *this project*. Note the tradeoff: `~/.claude/` is outside git, so it does not sync across machines.

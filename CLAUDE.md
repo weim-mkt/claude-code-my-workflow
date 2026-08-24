@@ -6,7 +6,7 @@
      See the guide at docs/workflow-guide.html for full documentation. -->
 
 **Project:** [YOUR PROJECT NAME]
-**Institution:** [YOUR INSTITUTION]
+**Institution:** UCL School of Management
 **Branch:** main
 
 ---
@@ -32,6 +32,7 @@ and the usual outcome is that all four get thrown away.
 - **Single source of truth** -- Beamer `.tex` is authoritative; Quarto `.qmd` derives from it
 - **Quality gates** -- nothing ships below 80/100
 - **[LEARN] tags** -- when corrected, save `[LEARN:category] wrong → right` to [MEMORY.md](MEMORY.md)
+- **No em dashes** -- do not use `—` in production prose (slides, manuscripts, Overleaf sources); AI-sounding. Internal working files (session logs, plans, commits, PRs, MEMORY.md) are exempt.
 
 Cross-session context lives in [MEMORY.md](MEMORY.md); past plans, specs, and session logs are in [quality_reports/](quality_reports/).
 
@@ -65,17 +66,22 @@ Nothing clears work until it has a row in [`quality_reports/qualification/LEDGER
 [YOUR-PROJECT]/
 ├── CLAUDE.MD                    # This file
 ├── .claude/                     # Rules, skills, agents, hooks
+├── .githooks/                   # Git hooks (activate: git config core.hooksPath .githooks)
 ├── Bibliography_base.bib        # Centralized bibliography
-├── Figures/                     # Figures and images
+├── Figures/                     # Figures and images (TikZ outputs, SVGs)
 ├── Preambles/header.tex         # LaTeX headers
 ├── Slides/                      # Beamer .tex files
 ├── Quarto/                      # RevealJS .qmd files + theme
 ├── docs/                        # GitHub Pages (auto-generated)
-├── scripts/                     # Utility scripts + R code
+├── guide/                       # Quarto-rendered workflow documentation
+├── scripts/                     # Utility scripts + analysis pipeline (quality_score.py, sync_to_docs.sh, validators)
+│   ├── R/                       # R pipeline (load → clean → analyze → tables → figures) + _outputs/
+│   ├── stata/                   # Stata pipeline (.do files + _outputs/); see stata-code-conventions.md
+│   └── python/                  # Python pipeline (+ _outputs/)
 ├── quality_reports/             # Plans, session logs, merge reports, decision records
 ├── explorations/                # Research sandbox (see rules)
 ├── templates/                   # Session log, quality report templates
-└── master_supporting_docs/      # Papers and existing slides
+└── master_supporting_docs/      # Papers and existing slides (claim-verifier ground truth)
 ```
 
 ---
@@ -102,6 +108,9 @@ python scripts/quality_score.py Quarto/file.qmd
 # (surface-sync + skill-integrity + model-versions + links + spec-conformance + staleness + repo-hygiene + derived-counts + ledger-coverage + hook-battery)
 # Run this after ANY change. Also runs in pre-commit and CI.
 ./scripts/backtest.sh
+
+# Activate the git pre-commit gate (one-time, per clone)
+./scripts/install-hooks.sh
 ```
 
 **Palette contract:** color names in `Preambles/header.tex` must match SCSS variables in `Quarto/theme-template.scss`. See [`Preambles/README.md`](Preambles/README.md).
