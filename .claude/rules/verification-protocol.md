@@ -33,7 +33,7 @@ paths:
 
 ## For R Scripts:
 1. Run `Rscript scripts/R/filename.R`
-2. Verify output files (PDF, RDS) were created with non-zero size
+2. Verify output files (PDF, fst, qs2) were created with non-zero size
 3. Spot-check estimates for reasonable magnitude
 
 ## Claims About Code Carry a Revision:

@@ -27,7 +27,7 @@ Numbered non-negotiable rules for content produced in this repository. Critic ag
 
 ## R script invariants
 
-- **INV-9: `set.seed()` once at top.** Every R script that uses randomness must call `set.seed(N)` exactly once, at the top of the script, before any stochastic code. Never inside loops or functions.
-- **INV-10: Relative paths only.** No absolute paths (`/Users/...`, `C:\...`, `~` expansion). All paths relative to the repository root. Use `file.path()` for cross-platform compatibility.
+- **INV-9: `set.seed(888)` before every randomness step.** Every R script that uses randomness must call `set.seed(888)` immediately before each stochastic step (simulation loop, bootstrap, random sampling, train/test split). Not once at the top of the script — the per-step convention keeps each randomness block independently reproducible when re-run in isolation. Never inside loops or inside functions that are called in loops; seed before the loop, not inside it. See `.claude/rules/r-code-conventions.md` §1. (Local deviation from the upstream template's "once at top YYYYMMDD" convention.)
+- **INV-10: Relative paths only.** No absolute paths (`/Users/...`, `C:\...`, `~` expansion). All paths relative to the repository root, resolved via `here::here()` (preferred) or `file.path()` for cross-platform compatibility. See `.claude/rules/r-code-conventions.md` §1.
 - **INV-11: Transparent backgrounds for Beamer figures.** All `ggsave()` calls producing figures for Beamer slides must include `bg = "transparent"`.
 - **INV-12: Project theme on all plots.** Every ggplot figure must use the project's custom theme. No default ggplot2 gray backgrounds should appear in any committed figure.

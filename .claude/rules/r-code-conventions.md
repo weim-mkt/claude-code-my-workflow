@@ -15,68 +15,118 @@ paths:
 
 ## 1. Reproducibility
 
-- `set.seed()` called ONCE at top (YYYYMMDD format)
-- All packages loaded at top via `library()` (not `require()`)
-- All paths relative to repository root
+- `set.seed(888)` called before every step involving randomness (default seed: 888)
+- `renv` for project isolation with `pak` as install backend; `library()` for loading
+- All paths via `here::here()` for cross-platform compatibility (macOS, Windows, Linux)
 - `dir.create(..., recursive = TRUE)` for output directories
+- All file I/O uses UTF-8 encoding explicitly (`fread(..., encoding = "UTF-8")`)
+- Script files saved as UTF-8 (no BOM)
 
-## 2. Function Design
+### renv + pak Setup
+```r
+# Project setup (once)
+renv::init()
+options(renv.config.pak.enabled = TRUE)
+
+# Install packages
+renv::install(c("data.table", "ggplot2", "here", "ggthemes"))
+
+# Snapshot for reproducibility
+renv::snapshot()
+```
+
+## 2. Function Design & Code Style
 
 - `snake_case` naming, verb-noun pattern
 - Roxygen-style documentation
 - Default parameters, no magic numbers
-- Named return values (lists or tibbles)
+- Named return values (lists or data.tables)
+- Section headings use `# Content ----` format (four trailing dashes)
+- Use base pipe `|>` everywhere (not magrittr `%>%`)
+- One pipe per line, pipe into the next line
 
-## 3. Domain Correctness
+## 3. Data Manipulation
+
+- Prefer `data.table` over `dplyr` for data wrangling
+- Pipe-style data.table with `|> _[...]` placeholder syntax
+- One operation per line for readability
+
+```r
+dt |>
+  _[x > 1] |>
+  _[, `:=`(y = x + 1)] |>
+  _[dt2, `:=`(a = i.a), on = c("key" = "key")]
+```
+
+## 4. Domain Correctness
 
 <!-- Customize for your field's known pitfalls -->
 - Verify estimator implementations match slide formulas
 - Check known package bugs (document below in Common Pitfalls)
 
-## 4. Visual Identity
+## 5. Visual Identity
 
-```r
-# --- Your institutional palette ---
-primary_blue  <- "#012169"
-primary_gold  <- "#f2a900"
-accent_gray   <- "#525252"
-positive_green <- "#15803d"
-negative_red  <- "#b91c1c"
-```
-
-### Custom Theme
-```r
-theme_custom <- function(base_size = 14) {
-  theme_minimal(base_size = base_size) +
-    theme(
-      plot.title = element_text(face = "bold", color = primary_blue),
-      legend.position = "bottom"
-    )
-}
-```
+- Use `ggthemes::theme_stata()` as the default ggplot theme
 
 ### Figure Dimensions for Beamer
 ```r
 ggsave(filepath, width = 12, height = 5, bg = "transparent")
 ```
 
-## 5. RDS Data Pattern
+### Table Export
 
-**Heavy computations saved as RDS; slide rendering loads pre-computed data.**
+- Export regression tables to LaTeX with `modelsummary` (pass the fitted model, not pre-extracted coefficients -- let it format estimates, SEs, stars, and GOF rows).
+- Output format is inferred from the file extension; write `.tex` for `\input{}` into slides/manuscripts.
 
 ```r
-saveRDS(result, file.path(out_dir, "descriptive_name.rds"))
+modelsummary::modelsummary(
+  list("(1)" = fit),
+  output   = here::here("scripts", "R", "_outputs", "tab_main.tex"),
+  stars    = c("*" = 0.1, "**" = 0.05, "***" = 0.01),
+  gof_omit = "AIC|BIC|Log.Lik|RMSE"
+)
 ```
 
-## 6. Common Pitfalls
+## 6. Data Caching
+
+**Heavy computations cached to disk; downstream scripts load pre-computed data.**
+
+- `fst::write_fst()` / `fst::read_fst()` for data.table / data.frame objects
+- `qs2::qs_save()` / `qs2::qs_read()` for model objects and other R objects
+
+```r
+fst::write_fst(dt, here::here("data", "cleaned", "descriptive_name.fst"))
+qs2::qs_save(model_fit, here::here("scripts", "R", "_outputs", "descriptive_name.qs2"))
+```
+
+## 7. Project Structure
+
+```
+./scripts/R/
+  main.R          # Entry point, sources 00-*.R files
+  00-setup.R      # Packages + global env vars
+  01-load_data.R  # Load raw data
+  02-*.R, 03-*.R  # Subsequent pipeline steps
+  _outputs/       # Analysis outputs, tables, model results (gitignored)
+./data/
+  raw/            # Raw data (read-only)
+  cleaned/        # Cleaned/processed data
+```
+
+- `main.R` orchestrates by sourcing numbered scripts in order
+- Numbered prefix (00-, 01-, 02-) ensures execution order is clear
+
+## 8. Common Pitfalls
 
 <!-- Add your field-specific pitfalls here -->
-| Pitfall | Impact | Prevention |
-|---------|--------|------------|
-| Missing `bg = "transparent"` | White boxes on slides | Always include in ggsave() |
-| Hardcoded paths | Breaks on other machines | Use relative paths |
+| Pitfall                      | Impact                   | Prevention                     |
+| -----------------------------| -------------------------| -------------------------------|
+| Missing `bg = "transparent"` | White boxes on slides    | Always include in ggsave()     |
+| Hardcoded paths              | Breaks on other machines | Use `here::here()` for all paths |
+| Platform path separators     | `\` vs `/` breaks        | `here::here()` handles this    |
+| Non-UTF-8 data files         | Encoding errors          | `fread(..., encoding = "UTF-8")` |
 
-## 7. Line Length & Mathematical Exceptions
+## 9. Line Length & Mathematical Exceptions
 
 **Standard:** Keep lines <= 100 characters.
 
@@ -94,7 +144,7 @@ saveRDS(result, file.path(out_dir, "descriptive_name.rds"))
 - Long lines in non-mathematical code: minor penalty (-1 to -2 per line)
 - Long lines in documented mathematical sections: no penalty
 
-## 8. Numerical Discipline
+## 10. Numerical Discipline
 
 See [`r-reviewer.md`](../agents/r-reviewer.md) Category 11 ("Numerical Discipline") for the full checklist. Headline rules:
 
@@ -112,15 +162,20 @@ See [`r-reviewer.md`](../agents/r-reviewer.md) Category 11 ("Numerical Disciplin
 - **Explicit `na.rm = TRUE/FALSE`.** Never rely on defaults for `mean()`, `sd()`, `sum()` on data with potential NAs.
 - **No `T` / `F`.** They're variables, not constants — write `TRUE` / `FALSE`.
 
-## 9. Code Quality Checklist
+## 11. Code Quality Checklist
 
 ```
-[ ] Packages at top via library()
-[ ] set.seed() once at top (YYYYMMDD)
-[ ] All paths relative
+[ ] renv initialized with pak backend
+[ ] Packages loaded at top via library()
+[ ] set.seed(888) before each randomness step
+[ ] Paths via here::here()
+[ ] Section headings use # Content ---- format
+[ ] Base pipe |> used (not %>%)
 [ ] Functions documented (Roxygen)
-[ ] Figures: transparent bg, explicit dimensions
-[ ] RDS: every computed object saved
+[ ] Figures: transparent bg, explicit dimensions, theme_stata()
+[ ] Tabular data cached with fst::write_fst()
+[ ] Model objects cached with qs2::qs_save()
+[ ] Files read/written with UTF-8 encoding
 [ ] Comments explain WHY not WHAT
 [ ] Numerical discipline: no float ==, CDF clamping with eps, pre-allocated vectors
 ```
