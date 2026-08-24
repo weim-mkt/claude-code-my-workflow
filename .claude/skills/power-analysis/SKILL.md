@@ -1,12 +1,13 @@
 ---
 name: power-analysis
 description: Compute statistical power, required sample size, and minimum detectable effect (MDE) for a study design, then write a registry-ready power section. Handles two-arm RCTs (with clustering / ICC and unequal allocation), multiple-arm corrections, and a simulation-based power option for non-standard designs (DiD/event-study, IV, panel). Use when user says "power analysis", "power calculation", "MDE", "minimum detectable effect", "how big a sample do I need", "is my study powered", "power for an RCT", or when /preregister needs a power section for an experiment. Produces a power/MDE table, power curves, and a methods paragraph to paste into a preregistration.
-author: Claude Code Academic Workflow
-version: 1.0.0
 argument-hint: "[--mode mde|n|power] [--design rct|cluster|multiarm|sim] [--input <spec-or-description>]"
 disable-model-invocation: true
-allowed-tools: ["Read", "Write", "Edit", "Bash", "Task"]
+allowed-tools: ["Read", "Write", "Edit", "Bash", "Agent", "Task"]
 effort: high
+metadata:
+  author: Claude Code Academic Workflow
+  version: 1.0.0
 ---
 
 # `/power-analysis` — Power / MDE for study design
@@ -58,7 +59,7 @@ Sweep a grid (N or #clusters × effect size) so Phase 3 can draw a power curve a
 
 ### Phase 2 — Simulation-based power (non-standard designs)
 
-When the design is **not** a clean two-arm comparison — DiD / staggered event-study, IV / 2SLS (weak-instrument-aware), panel with serial correlation, a non-normal or censored outcome, or any estimator with no closed-form SE — switch to simulation. **Reuse the `/simulation-study` harness** exactly (see [`simulation-study`](../simulation-study/SKILL.md) and [`.claude/rules/simulation-conventions.md`](../../rules/simulation-conventions.md)):
+When the design is **not** a clean two-arm comparison — DiD / staggered event-study, IV / 2SLS, panel with serial correlation, a non-normal or censored outcome, or any estimator with no closed-form SE — switch to simulation. **Reuse the `/simulation-study` harness** exactly (see [`simulation-study`](../simulation-study/SKILL.md) and [`.claude/rules/simulation-conventions.md`](../../rules/simulation-conventions.md)):
 
 1. **Seeded, parameterized DGP** that embeds the hypothesized effect (and the null DGP for size). `set.seed(YYYYMMDD)` once; L'Ecuyer streams if parallel.
 2. **Estimator** = the one you will actually use on the real data (e.g. `fixest::feols` two-way FE, `did::att_gt`, `AER::ivreg`), returning `est, se, ci, p, reject`.

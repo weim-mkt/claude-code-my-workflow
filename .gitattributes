@@ -1,0 +1,13 @@
+# Generated artifacts: never hand-merge them.
+#
+# docs/*.html and guide/*.html are Quarto build outputs of guide/workflow-guide.qmd.
+# A merge conflict in them carries no intent — the correct content is whatever
+# `quarto render` produces from the merged source. The keep-ours driver resolves
+# them silently; scripts/stamp-render.sh then fails loudly if the committed HTML
+# does not match the source it claims to come from, so a forgotten re-render
+# cannot ship.
+#
+# Requires `git config merge.keep-ours.driver true` in each clone — see
+# scripts/fork-setup.sh.
+docs/*.html          merge=keep-ours
+guide/*.html         merge=keep-ours

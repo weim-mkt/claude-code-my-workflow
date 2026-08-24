@@ -29,7 +29,7 @@ SEED <- 888L
 # Everything resolves from the project root via here::here().
 dir_raw     <- here::here("data", "raw")
 dir_cleaned <- here::here("data", "cleaned")
-dir_output  <- here::here("output")
+dir_output  <- here::here("scripts", "R", "_outputs")
 
 # Create output directories if missing ----
 for (d in c(dir_cleaned, dir_output)) {

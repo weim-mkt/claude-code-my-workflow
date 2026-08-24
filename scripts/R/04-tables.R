@@ -11,7 +11,7 @@
 #' @param models A model object, or a named list of models for side-by-side columns.
 #' @param path Output path for the .tex table. Format is inferred from the extension.
 #' @return Invisibly, the path written.
-write_main_table <- function(models, path = here::here("output", "tab_main.tex")) {
+write_main_table <- function(models, path = here::here("scripts", "R", "_outputs", "tab_main.tex")) {
   # A bare model becomes a single named column; a named list gives one column each.
   if (!inherits(models, "list")) models <- list("(1)" = models)
 

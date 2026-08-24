@@ -1,17 +1,18 @@
 ---
 name: coauthor-brief
 description: Generate a co-author / collaborator handoff brief for a multi-author, multi-machine project — summarizing what changed since the last brief (git delta), the current state of each artifact (manuscript, analysis, slides), open questions, how to reproduce locally, and any restricted-data access steps. Use when user says "coauthor brief", "handoff brief", "bring my coauthor up to speed", "what changed since last week", "onboard a collaborator", "write a handoff for [name]", or before sending a co-author the repo. NOT a commit or a checkpoint — it is the cross-machine, cross-person summary `meta-governance.md` only partially covers.
-author: Claude Code Academic Workflow
-version: 1.0.0
 argument-hint: "[--since <tag|date|Ndays>] [--for <collaborator-name>] [--no-data-section]"
 disable-model-invocation: true
 allowed-tools: ["Read", "Write", "Glob", "Grep", "Bash"]
 effort: medium
+metadata:
+  author: Claude Code Academic Workflow
+  version: 1.0.0
 ---
 
 # /coauthor-brief — Collaborator Handoff Brief
 
-Produce a single Markdown brief a co-author (or your future self on another machine) can read in a few minutes to know **what changed, where each artifact stands, what's blocked, and how to run the pipeline locally** — including restricted-data access steps a new collaborator needs. [`meta-governance.md`](../../rules/meta-governance.md) covers the *memory* side of cross-machine work (what syncs via git, what stays in gitignored `personal-memory.md`); this skill covers the *human* side: the per-person, per-session handoff.
+Produce a single Markdown brief a co-author (or your future self on another machine) can read in a few minutes to know **what changed, where each artifact stands, what's blocked, and how to run the pipeline locally** — including restricted-data access steps a new collaborator needs. [`meta-governance.md`](../../rules/meta-governance.md) covers the *memory* side of cross-machine work (what syncs via git, what stays in gitignored native auto memory); this skill covers the *human* side: the per-person, per-session handoff.
 
 **Core principle:** `/checkpoint` is for *you* resuming; `/coauthor-brief` is for *someone else* starting. The first answers "where am I?"; the second answers "what do I need to know to take over a piece of this?"
 
@@ -54,6 +55,10 @@ Read-only collection. Skip any source that doesn't apply (R-only, Stata-only, no
 
 Use the template below. Keep it tight (~1–2 screens). Concrete `path:line` pointers beat prose.
 
+**Label every status statement `measured` or `inferred`.** *Measured* means a command was run and what you are reporting is its output — **name the command**. *Inferred* means you believe it from reading the code, the diff, or a run from some earlier day. Both belong in a brief; mixing them silently does not, because the reader cannot tell which claims they can build on without re-checking. Write `replication-ready (measured: Rscript scripts/R/00_run_all.R — 0 FAIL)`, not `replication-ready`.
+
+**Disposition delegated work item by item.** Anything handed to a co-author, an RA, or an agent gets its own line and its own state — done (with the evidence) / in progress / blocked (on what) / not started. *"Mostly done"* is not a disposition: it hands the reader the job of finding the missing piece, which is precisely the job the brief exists to do.
+
 ```markdown
 ---
 date: YYYY-MM-DD
@@ -66,16 +71,23 @@ branch: [current branch]
 
 ## What changed since [since-point]
 [3–8 bullets, grouped by area. Each: what changed + why it matters to a reader, not raw commit subjects.]
-- **Analysis:** re-estimated the event-study with not-yet-treated controls (Callaway–Sant'Anna); main ATT now −1.19 — see `scripts/R/03_analyze.R:147`.
+- **Analysis:** re-ran the main specification on the de-duplicated sample (533 fanned-out rows dropped); headline estimate now −1.19 — see `scripts/R/03_analyze.R:147`.
 - **Manuscript:** Table 2 + §4.2 rewritten to match; Figure 3 regenerated.
 - **Slides:** untouched.
 
 ## Current state of each artifact
-| Artifact | Path | State | Notes |
+| Artifact | Path | State | Evidence (measured / inferred) |
 |---|---|---|---|
-| Manuscript | `manuscript.tex` | drafting §5 | robustness section is a stub |
-| Analysis | `scripts/R/` | replication-ready | passport: 11 PASS, 1 EXPLAINED, 0 FAIL |
-| Slides | `Slides/` | current | matches latest results |
+| Manuscript | `manuscript.tex` | drafting §5 | inferred — §5 read, not compiled since the Table 2 rewrite |
+| Analysis | `scripts/R/` | replication-ready | measured: `Rscript scripts/R/00_run_all.R`, passport 11 PASS / 1 EXPLAINED / 0 FAIL |
+| Slides | `Slides/` | current | measured: `git log --since=<point> -- Slides/` returns nothing |
+
+## Delegated work — one line per item
+[Everything handed to a co-author, an RA, or an agent, dispositioned individually. No roll-ups.]
+| Item | Owner | State | Evidence / blocker |
+|---|---|---|---|
+| Re-run Table 3 with the new sample filter | [name] | done | measured: output diff vs `_outputs/tab3_prev.csv`, 2 cells moved |
+| Appendix B proof of Lemma 2 | [name] | blocked | waiting on the boundedness condition in Q1 below |
 
 ## Open questions / decisions needed
 [Things the co-author should weigh in on. Mark Q1, Q2…; flag which block progress.]
@@ -92,7 +104,7 @@ branch: [current branch]
 ## Recommended git topology for this project
 - One **feature branch per author** (`feat/<author>-<topic>`); rebase on `main`, open a PR, merge via `/commit`.
 - `MEMORY.md` is **committed** — generic learnings sync to everyone.
-- `personal-memory.md` and `.claude/state/` stay **local** (gitignored) — never expect a co-author to have yours (see meta-governance.md).
+- Native auto memory (`~/.claude/projects/<project>/memory/`) and `.claude/state/` stay **local** — never expect a co-author to have yours (see meta-governance.md).
 - Pull before you brief; brief before you hand off.
 ```
 

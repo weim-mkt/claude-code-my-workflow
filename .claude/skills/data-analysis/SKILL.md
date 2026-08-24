@@ -2,7 +2,7 @@
 name: data-analysis
 description: End-to-end R data analysis pipeline — exploration → cleaning → regression → publication-ready tables and figures. Use when user says "analyze this dataset", "run a regression on X", "explore this CSV", "full analysis workflow", "get me summary stats and a regression", or points at a `.csv`/`.rds`/`.dta` and asks for empirical results. Produces numbered R scripts in `scripts/R/` and outputs to `scripts/R/_outputs/`.
 argument-hint: "[dataset path or description of analysis goal]"
-allowed-tools: ["Read", "Grep", "Glob", "Write", "Edit", "Bash", "Task", "Monitor"]
+allowed-tools: ["Read", "Grep", "Glob", "Write", "Edit", "Bash", "Agent", "Task", "Monitor"]
 ---
 
 # Data Analysis Workflow
@@ -17,7 +17,7 @@ Run an end-to-end data analysis in R: load, explore, analyze, and produce public
 
 - **Follow R code conventions** in `.claude/rules/r-code-conventions.md`
 - **Save all scripts** to `scripts/R/` with descriptive names
-- **Save all outputs** (figures, tables, cached data) to `output/`
+- **Save all outputs** (figures, tables, cached data) to `scripts/R/_outputs/`
 - **Cache data** with `fst::write_fst()` for tabular, `qs2::qs_save()` for model objects
 - **Use `ggthemes::theme_stata()`** for all figures
 - **Run r-reviewer** on the generated script before presenting results
@@ -69,7 +69,7 @@ Generate diagnostic outputs:
 - **Time patterns:** If panel data, plot trends over time
 - **Group comparisons:** If treatment/control, compare pre-treatment means
 
-Save all diagnostic figures to `output/diagnostics/`.
+Save all diagnostic figures to `scripts/R/_outputs/diagnostics/`.
 
 ### Phase 3: Main Analysis
 
@@ -96,7 +96,7 @@ Based on the research question:
 ### Phase 5: Save and Review
 
 1. `fst::write_fst()` for tabular data, `qs2::qs_save()` for model objects
-2. Create `output/` subdirectories as needed with `dir.create(..., recursive = TRUE)`
+2. Create `scripts/R/_outputs/` subdirectories as needed with `dir.create(..., recursive = TRUE)`
 3. Run the r-reviewer agent on the generated script:
 
 ```
@@ -131,7 +131,7 @@ library(here)
 library(fst)
 library(qs2)
 
-dir.create(here("output", "analysis"), recursive = TRUE, showWarnings = FALSE)
+dir.create(here("scripts", "R", "_outputs", "analysis"), recursive = TRUE, showWarnings = FALSE)
 
 # 1. Data Loading ----
 # dt <- fread(here("data", "raw", "dataset.csv"), encoding = "UTF-8")
@@ -147,9 +147,9 @@ set.seed(888)
 # [Publication-ready output with theme_stata()]
 
 # 5. Export ----
-# fst::write_fst(dt_results, here("output", "analysis", "results.fst"))
-# qs2::qs_save(model_fit, here("output", "analysis", "model.qs2"))
-# ggsave(here("output", "analysis", "figure.pdf"), width = 12, height = 5, bg = "transparent")
+# fst::write_fst(dt_results, here("scripts", "R", "_outputs", "analysis", "results.fst"))
+# qs2::qs_save(model_fit, here("scripts", "R", "_outputs", "analysis", "model.qs2"))
+# ggsave(here("scripts", "R", "_outputs", "analysis", "figure.pdf"), width = 12, height = 5, bg = "transparent")
 ```
 
 ---

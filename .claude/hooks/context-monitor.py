@@ -19,12 +19,13 @@ See https://code.claude.com/docs/en/hooks.
 Context usage is an estimate. When the hook receives a `transcript_path`, we read
 the most recent main-chain assistant message's token usage (input + cache-read +
 cache-creation) — the live context occupancy — against CLAUDE_CONTEXT_WINDOW_TOKENS
-(default 1,000,000 — the current Opus 4.8 / Sonnet 4.6 default). Because a /compact
-shrinks that turn's input, this RESETS after compaction, unlike a transcript-size
-proxy (the .jsonl is append-only and only grows, so size climbs forever). If usage
-can't be parsed we fall back to transcript file size; with no transcript at all, to a
-tool-call counter (CLAUDE_CONTEXT_MAX_TOOL_CALLS, default 400). Treat it as an
-early-warning signal, not a precise gauge.
+(default 1,000,000 — the 1M-context default on recent Opus/Sonnet tiers; see
+model-versions.md). Because a /compact shrinks that turn's input, this RESETS after
+compaction, unlike a transcript-size proxy (the .jsonl is append-only and only grows,
+so size climbs forever). If usage can't be parsed we fall back to transcript file
+size; with no transcript at all, to a tool-call counter
+(CLAUDE_CONTEXT_MAX_TOOL_CALLS, default 400). Treat it as an early-warning signal,
+not a precise gauge.
 """
 
 from __future__ import annotations
@@ -44,7 +45,7 @@ THRESHOLD_CRITICAL = 90
 THROTTLE_INTERVAL = 60
 
 # Calibration defaults (both overridable via env)
-DEFAULT_CONTEXT_WINDOW_TOKENS = 1_000_000   # Opus 4.8 / Sonnet 4.6 default window
+DEFAULT_CONTEXT_WINDOW_TOKENS = 1_000_000   # 1M default window on recent Opus/Sonnet tiers
 DEFAULT_MAX_TOOL_CALLS = 400                 # fallback proxy when transcript size is unavailable
 APPROX_BYTES_PER_TOKEN = 4.0
 TRANSCRIPT_TAIL_BYTES = 512 * 1024           # how much of the transcript tail to scan for the latest usage

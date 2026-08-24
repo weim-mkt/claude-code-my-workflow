@@ -6,6 +6,536 @@ If you have forked this template, see the **Upgrading** section at the bottom fo
 
 ---
 
+## v2.5.1 — 2026-08-24
+
+An **enforcement release.** Disciplines that had been working conventions in the owner's
+research repositories become mechanisms here: the qualification ledger stops being a document
+and becomes a build dependency, the guard hooks stop being trusted and start being re-tested on
+every run, and reviewer independence stops being an instruction to the reviewer and becomes a
+property of the environment it is dispatched into. Where v2.5 asked whether the template's
+claims were true, v2.5.1 asks whether the things that check them still work.
+
+### Added — enforcement
+
+- **Gate 9 — `scripts/check-ledger-coverage.py`.** The qualification ledger becomes
+  load-bearing. A **registered check with no ledger row fails the build**; a row filed under
+  *Not yet qualified* is **visible debt** and warns instead of failing; a row naming a checker
+  no longer on disk fails. The same gate covers the hook layer — every hook registered in
+  `.claude/settings.json` must exist, be invocable, and be tracked — so a one-character path
+  typo can no longer disable a hook silently while every gate stays green. The registered set
+  is derived live from the gate runner, the session settings, and the commit entry point;
+  grepping the ledger cannot know what actually runs.
+- **Gate 10 — `scripts/hook-battery.sh`.** A standing seeded battery (234 cases, seconds to run)
+  that re-fires every active guard hook's target failure on **every backtest run**: the deny
+  cases, the clean controls that must stay silent, fail-open on a malformed event, and the
+  documented escape hatches. Gate 9 proves a hook is *wired*; gate 10 proves it still *acts*.
+- **`.claude/hooks/root-of-trust-guard.py`** (PreToolUse) — denies shell writes into
+  `.claude/settings*.json`, `.claude/hooks/`, and `.githooks/`: the files that define every
+  other gate. Reads pass, and `Edit`/`Write` stay allowed because they leave a reviewable diff.
+  It is a **textual scan, and defense-in-depth rather than a proof** — it catches the direct
+  forms and the payload carriers it knows, and its docstring names what stays out of reach
+  (an interpreter it cannot read into, a path piped to a deleter, an unenumerated execution
+  form). Both guards state their own boundary, because a guard trusted past its coverage is
+  worse than none.
+  The hatch is `ALLOW_ROOT_OF_TRUST_WRITE=1`, deliberately an explicit decision rather than a
+  default.
+- **`git-guardrails.py` gains a clean-tree precondition.** Merges, rebases, and pulls refuse to
+  start over a dirty tree — commit it, or stash it under a label that says what it is
+  (`--abort` / `--continue` / `--skip` / `--quit` / `--edit-todo` exempt; hatch
+  `ALLOW_DIRTY_MERGE=1`). The asymmetry is the whole argument: the check costs one command, and
+  the failure it prevents is uncommitted work destroyed by a merge that mostly succeeded.
+  **Four of its rules refuse command shapes a fork may be running today — read them before you
+  upgrade.** (1) A history op is accepted **only as a standalone simple command**: a second
+  segment, a pipeline, a redirection, a command or process substitution, a grouping, a `cd`, or
+  a variable assignment denies it *regardless of tree state*, so `git pull | tail -5`,
+  `git pull > log 2>&1`, `git merge x && npm install` and `git merge $(cat branchfile)` are all
+  now refused. That shape is the only thing a PreToolUse hook can honestly stand behind — a
+  tree reading taken before bash runs says nothing about the tree the op starts from unless
+  nothing on the line can write in between. (2) `--autostash` is **no longer unconditionally
+  exempt**: it now reads the tree and is allowed only when no untracked (`??`) entry is
+  present, because `git stash` does not stash untracked files at all. (3) A `-C <path>` the
+  guard cannot resolve — an unexpanded `$var`, a directory that does not exist — **denies**,
+  instead of quietly falling back to the session's own repository and allowing because *that*
+  one was clean. (4) `--git-dir`, `--work-tree`, `--namespace`, `--bare`, and any `NAME=VALUE`
+  assignment on the line (`GIT_DIR=`, `GIT_WORK_TREE=`, …) deny outright; run the op from the
+  repository it belongs to. **The accepted cost is one extra tool call** — with its own hook
+  cycle and agent round trip, not "one extra keystroke", as an earlier draft of the hook's own
+  docstring claimed.
+- **The hook layer is qualified, not assumed.** Every guard hook and every gate this release
+  adds carries a ledger row with **recall and false-positive rate** measured against seeded
+  defects *and* clean controls — gate 9 fails the build if one is missing — including a
+  *grading-the-grader* row that stubs a guard hook to always-allow in a copied hook directory
+  and confirms the battery goes red and names the failing case. Six further rows record
+  **visible debt**: the five passive hooks and the pre-commit entry point, unmeasured and
+  saying so, because a hook nobody watches is the gate most likely to be dead.
+
+### Added — the fencing and disposition layer
+
+- **`.claude/rules/review-fencing.md`** — path-scoped to `.claude/agents/**` and
+  `.claude/skills/**/SKILL.md`, so it binds where reviewers are actually authored. Independence
+  is a property of the **environment**, not a sentence in a prompt: a reviewer with a spotless
+  context still holds a checkout containing the previous round's verdicts, the passport listing
+  every number the paper claims, and the stamp recording what the current render was built
+  from. *Prompting an agent to review independently while it can `grep` for the answer is an
+  honour system with a search tool.* So an independence-critical reviewer gets a **neutral copy
+  outside the checkout** under a filename that carries no verdict, prior verdicts withheld, its
+  own reading formed before it sees anyone else's, and positive controls fenced from the answer
+  keys this template itself commits — passports, `.render-stamp`, the qualification ledger.
+  With a table of when to fence and when in-repo review is exactly the point.
+- **The `WITHDRAW` disposition** joins the verification ladder. When a default, a capability, or
+  an automatic behaviour misses the numeric bound it preregistered, it is **demoted to explicit
+  opt-in — never rescued by widening the bound**, because a bound moved after seeing the number
+  is a description of the result, and every claim that later cites it is circular. Three
+  obligations discharge it: publish the failing number, the bound it missed, and the disposition
+  **where users read**; preserve the failing campaign as negative calibration evidence, never
+  re-run against unchanged inputs; and enumerate every adjacent surface as affected or
+  explicitly not. *The bound is the promise; the default is the endorsement.*
+- **A noise floor beside the positive control.** The seeded case proves a checker can fire; it
+  says nothing about how far the checker moves when nothing happened. So an invariance claim —
+  *"this change moved nothing"* — now also carries a **same-kind no-op** put through the
+  identical measurement, whose observed effect is the largest movement that still counts as
+  nothing. Fires on the known-affected case, stays quiet on the no-op; either control alone is
+  decoration. A "no difference" with no floor under it has a threshold too — unstated, and
+  chosen after the fact.
+- **Run labels, attached when a run is queued and never when it lands** — `pre-specified`,
+  `confirmatory`, `exploratory` — as part of the append-only ledger row, so a label cannot be
+  revised in the direction of the result. Only the first two can support a headline claim; an
+  exploratory run produces a hypothesis for the next pre-specification, which is a reason to
+  write a contract rather than evidence for the current one.
+- **Name the level you measured at.** Configuration, design, and the realized result are three
+  different levels, and evidence at one does not transfer to another: a setting present in a
+  config file is not a design that used it, and a design is not a result that reflects it. Say
+  *"the fitted output reports X"*, not the level-ambiguous *"the analysis uses X"*. Checking the
+  convenient level instead of the computed one is how an artifact passes every structural layer
+  while the claim resting on it was never measured at all.
+
+### Added — contracts and references
+
+- **Four laws close the last mile of `research-agent-laws.md`.**
+  **18 — a count is a computation, not a reading:** every number a decision or a reader rests
+  on is produced by a command whose output *is* the number, and is reported together with that
+  command; a figure taken off a scrolled buffer is a guess wearing a count's precision. Scoped
+  on purpose — it binds published and gating numbers, not every figure in conversation.
+  **19 — name the state you actually reached; never a later one:** *modified*, *verified*,
+  *committed*, *pushed*, and *integrated* are five different states, and claiming a later one
+  than you reached is the whole defect. Where a task ends belongs to its contract; only the
+  honesty of the report belongs to the law.
+  **20 — history operations normally start from a porcelain-clean repository**, and an
+  exception is an explicit override *reported as an exception* — mechanised by the guard above,
+  within the boundary that entry now states.
+  **21 — delegated screens run under a written rubric, and waves are adjudicated whole:** the
+  default verdict is a **declared decision, not a constant** — EXCLUDE where a false include is
+  the error you could still catch later, never on a recall-first sweep, and NEEDS-HUMAN where
+  neither error is recoverable — with per-candidate evidence, a re-check whose sampling method,
+  sample size, tolerated disagreement rate and escalation are fixed **before** the screen runs,
+  and verdicts joined to candidates by id. Early returns are *status*, not input.
+  **These wordings were corrected mid-release, and the correction leads.** Laws 19 and 21 were
+  drafted in this branch as *"done" is a state of the repository — committed and pushed, and
+  only then reported* and *EXCLUDE as the default verdict*, and an external referee falsified
+  both before the release shipped. Requiring every task to end pushed breaks a collaborator who
+  asked for a working-tree diff to review, a contributor without push rights, and anyone
+  offline — so the law now governs the honesty of the claim, not where the work stops.
+  EXCLUDE-by-default inverts on a recall-first screen: it silently drops relevant evidence, and
+  unlike a bad include, nothing downstream ever surfaces the loss. Law 20's flat *"start from a
+  clean tree"* was narrowed for a third referee finding, on what a pre-execution check can
+  establish at all. The wordings above are the ones that shipped; earlier drafts survive
+  nowhere but in this paragraph.
+- **`templates/executor-contract.md`** — the dispatchable contract for delegated work: the goal,
+  the acceptance bar, exact paths, the gates the result must pass, the output contract, and the
+  mechanisms the executor is allowed to refuse. State the bar; never the implementation.
+- **`templates/screening-rubric.md`** — the screening rubric whose **default verdict is a
+  declared decision, not a constant**: EXCLUDE on a precision-first shortlist, never on a
+  recall-first sweep, NEEDS-HUMAN where neither error is recoverable — with the adjudication
+  table and the dispatcher spot-check that keep a delegated screen from drifting into an
+  opinion poll with citations.
+- **`.claude/references/release-engineering.md`** — shipping research software as an artifact:
+  user-facing message and silent-resolution censuses (census first, rewrite second), frozen
+  feature matrices for ports and reimplementations, inherited tests claimed **by name and by
+  hash**, release preflight archives built from `git archive` rather than the working tree,
+  downstream consumers pinned by commit SHA, and status contracts that are generated rather
+  than written.
+
+### Changed
+
+- **Simulation studies declare an assumption regime.** `simulation-conventions.md`,
+  `/simulation-study`, and the `sim-reviewer` agent now require a per-script header naming the
+  estimand, **every** maintained assumption, the **single** assumption this run relaxes and how
+  severely, and how correct specification was **verified** rather than asserted. Behind it: a
+  firewall — a within-assumption claim may not cite an out-of-assumption run — and
+  relax-exactly-one over a severity grid, because two relaxations at once make a failure
+  unattributable.
+- **The passport gains `appears_in`, and reproducibility becomes two-directional.** Every
+  artifact that displays a number is declared, and all declared displays must agree at the
+  coarser display precision. A declared display that cannot be located resolves to **FAIL**; a
+  claim with no `appears_in` is reported **horizontally unchecked**, not silently clean. The
+  vertical check passes contentedly while a deck quotes last month's value — only the
+  horizontal one catches that. Wired through the whole loop: `claim-reconcile.py` nudges when a
+  declared display is edited (naming the *siblings* that were not), `nightly-repro-check.sh`
+  marks a claim **STALE** when any display is touched after `last_verified_on`, and `/commit`
+  triggers the passport read on a display diff as well as a script diff.
+- **Oracle transcripts are archived in-repo**, under
+  `quality_reports/oracle_audits/YYYY-MM-DD_topic/` — committed, unlike the session-log and plan
+  subdirectories that `.gitignore` excludes — so that any claim resting on an external consult
+  cites the archived transcript rather than "the oracle said", recalled from a session that has ended.
+- **`/checkpoint` gains an in-flight slot.** Anything the session started and did not wait for —
+  a long compute job, a scheduled routine, a queued render, a review still out with another
+  model — is recorded with four things: what is running, where its artifacts land, the command
+  that checks on it, and the verdict that ends it. A checkpoint silent about running work hands
+  the next session a false picture of what is finished.
+- **`/commit` subject lines state what is true *after* the commit** — a plain claim a reader
+  could go and test, not a narration of the afternoon. Process detail (which review round, how
+  many attempts) belongs in the body if it belongs anywhere.
+- **`/coauthor-brief` labels every status `measured` or `inferred`**, and *measured* must name
+  the command that produced it. Both belong in a brief; mixing them silently does not, because
+  the reader cannot tell which claims they can build on without re-checking all of them.
+- **`/blast-radius` follows a change across repositories.** A consumer in another repo pins this
+  one by commit SHA, so a change that moves a number the downstream reports is **not finished
+  when this repo goes green**: before/after evidence for what moved, regeneration of the
+  downstream artifact, and the re-pin all belong to the *same* round as the change. A downstream
+  left pinned to the old SHA is an honest, inspectable state; one pointed at a moving reference
+  silently inherits a number nobody re-verified.
+
+**Inventory at release: 60 skills, 18 agents, 37 rules, 8 hooks, 10 gates**
+(was 60 / 18 / 36 / 7 / 8 at v2.5.0).
+
+### Removed — the methods veto, extended
+
+The v2.5 veto on unvetted difference-in-differences content is **extended to empirical causal
+methods generally** — regression discontinuity, synthetic control, instrumental variables,
+event studies, and matching-as-identification. The reason is the owner's and is unchanged:
+strong claims about how to run a method do not ship without the owner's current sign-off, and
+that sign-off is not available now.
+
+Removed: the design-specific fork sections of `/challenge`'s fork catalogue and the
+corresponding sections of its sensitivity-statistics catalogue — Rosenbaum Γ went with them,
+matching being the same class — the matching rows of `/challenge`'s sensitivity table, the
+named-statistics list at rung 4 of `verification-ladder.md`, the IV and matching/RD peeves in the
+`editor` persona, and the methods referee's first-stage-F blocker.
+
+Re-domained rather than removed, because the pedagogy was never about the method: the
+`/diagnose` worked example, the `/coauthor-brief` sample entry, the `/research-ideation`
+identification template, two `/vaccinate` defect seeds, the preregistration template's estimator
+menu, and the Chain-of-Verification examples — which now carry a synthetic citation rather than
+multiplying claims about a real paper's contents.
+
+What remains is the standard, written down: neutral taxonomy (method names as category lists),
+journal- and field-content descriptions, canonical-package pointers conditional on the user's own
+prior choice, citations to the owner's published work, explicit decline-to-judge stances, and
+historical records, which are not rewritten — a past entry may be superseded or extended, never
+quietly restated. Where a catalogue section was removed, a one-line
+note stands in its place; where a single named list was cut (rung 4 of the verification ladder),
+the surrounding text now points to the statistics canonical in your own design's literature —
+either way the absence is visible rather than mysterious. The ruling is
+recorded in `.claude/rules/meta-governance.md` (2026-08-23) and the lesson extended in
+`MEMORY.md`. Method **diagrams** — the `did-two-period` and `event-study` TikZ snippets — are
+drawings, not usage guidance; they are kept, flagged for a later ruling.
+
+### Verification of this release
+
+Three independent kinds of review ran against this branch, and **each found defects the other
+two could not.** That is the finding worth carrying forward: no single method was sufficient,
+and the one that mattered most was the one that asked a different question.
+
+**The adversarial rounds** — fresh-context lenses, refute-biased verification of every finding,
+fix, re-audit — drove the mechanical surface. They were good at what they were pointed at: counts
+recomputed from source, links, staleness, guard bypasses. Twice the defect a round found was one
+the *previous* round's own fix had introduced, and once a round's fix had disclosed a residual
+list that was itself wrong about what it had missed — which is the argument for re-auditing in
+fresh context rather than trusting a fixer's report of its own work. Two findings are worth
+naming because the class generalizes. A guard folded a path's parent segments by string while the
+tool it guards folds them through the kernel; the two agree until a symlink sits in front, and
+then they name different repositories — so the guard read one tree and the command changed
+another. And a docstring enumerating the redirection spellings a guard catches drifted from the
+code in *both* directions at once: it listed four, the regex already caught a fifth nobody had
+written down, and the shell accepts a sixth that neither had. Both were found by running the
+command, not by reading the code — and the second is the concrete cost of the open debt this
+release records, that nothing gates a docstring against the code it describes.
+
+**The guards catch the direct forms, and not every spelling of them.** A path can be written many
+ways that all reach the same file — a glob, a different case on a case-insensitive filesystem,
+a quote or a backslash sitting inside the name, a variable, a command substitution. Successive
+review rounds each turned up another one, which is what a text scan over shell syntax is like:
+useful, and not a closed set. Both guards' residual lists say plainly which forms they have been
+tested against and that there are others; they are not an enumeration of everything that exists.
+We are not trying to catch every spelling, and nothing here should be read as claiming to.
+
+One distinction is worth keeping, because it changes what a fix can do. Most of those forms are
+just *text*: the information is in the command line, so a scanner can be taught to read it. A
+symbolic link is not — it is a fact about the filesystem, and reading the command line cannot
+recover it. So that one is written down as out of reach rather than chased. What the guards buy
+is that the ordinary accident costs a denial; if you need a guarantee, the mechanism has to be
+something other than a text scan.
+
+**The template's own skills, run against the template**, found what those rounds structurally
+could not — the rounds asked *"is this correct?"*, never *"what does this do to a user?"*
+`/blast-radius` reproduced, end to end using this guide's own worktree recipe, that a gate added
+by this release **committed to the user's branch and then blocked every retry**: git exports an
+absolute `GIT_DIR` into hooks from a linked worktree, and `git -C` does not isolate against it.
+The same defect meant a block of battery cases had been passing by reading the *outer*
+repository — green for the wrong reason — so they were re-qualified rather than assumed.
+`/verify-claims` measured that the story motivating gate 9 was false: a mistyped hook path does
+not fail silently. `/humanize` found the release's own teaching illustrations were one template
+run five times.
+
+**An independent frontier-model referee returned HOLD.** Its lead finding was reachable by
+neither of the above: the clean-tree guard read the tree at `PreToolUse`, *before* the shell
+command ran, so a command that dirtied the tree and then ran a history operation was allowed.
+Every internal round had tested chains in one direction only. The release was paying the guard's
+full usability cost while the guarantee it advertised did not hold in the direction that
+mattered. Its findings were reproduced against real git before being accepted, and every one is
+answered — including several where the right response was to *delete* a claim rather than soften it. The consult is
+archived at `quality_reports/oracle_audits/2026-08-23_v2.5.1-guard-design/` with the prompt as
+asked, the answer unedited, and a bound on its coverage stated by the referee itself: it read the
+guards' documented design, not their source, so it is evidence about what the design claims and
+not about whether the code matches.
+
+**Claims withdrawn rather than softened.** A release that argues for verification should say
+plainly what it got wrong:
+
+- *"No textual feature of the command can make a dirty tree read as clean"* — falsified in
+  review; the guard identifies forms, and an unidentified invocation passes outside the rule.
+- *"A closed allowlist over the whole command"* — it is a best-effort recognizer.
+- *"One extra keystroke"* — it is another tool call, hook cycle and round trip.
+- *`reflog`/`ORIG_HEAD` backstop a bad merge* — they recover **commits**; this protects exactly
+  what is not committed.
+- *Law 19: every task ends pushed* — deleted. A collaborator who asks for a working-tree diff
+  completes their task.
+- *Law 21: EXCLUDE is the default verdict* — deleted for a recall-first screen, where it
+  silently drops relevant evidence and nothing downstream ever surfaces the loss.
+
+**Qualification.** Every gate carries a row in `quality_reports/qualification/LEDGER.md` with the
+defect classes seeded, recall, false-positive rate against a clean control, and a reproduction
+command. The hook battery is itself graded: stubbing each guard to always-allow must turn it red,
+and the per-guard **section tallies** are recomputed from the battery's own source by a
+gate. The stub OUTCOMES are recorded as dated measurements carrying their reproduction
+command, not gated — which guard *decides* a case is a runtime property, and the two
+guards share a deny list by import, so no static read of the test file recovers it. Each fix in
+this release was qualified in both directions — reverted in a copy to confirm its own cases go
+red, and run against the clean control to confirm no others do.
+
+**Disclosed rather than claimed closed.** The guards are defense-in-depth over a deliberate
+bypass posture, not proofs, and each docstring names what it cannot see. One seam is left open
+and recorded, and it is narrower than an earlier draft of this section said: the destructive-verb
+deny list is now **shared** across the two hooks, so a `reset --hard` or a `clean -fdx` carried
+inside a shell payload is caught. What is not shared is the **dirty-tree** check, so a merge,
+rebase or pull inside such a payload is still seen by neither hook. That half stays open on
+purpose — it needs a resolved repository and a live `git status`, and duplicating
+repository-identity resolution is exactly the surface review showed was wrong twice.
+The referee's preferred design, a trusted runtime wrapper, was consciously deferred in favour of
+its own cheaper fallback. Nothing gates a docstring against the code it describes; that is
+recorded as open debt, and it is how the redirection defect above survived. And this prose is
+model-drafted: `writing-with-ai.md` is explicit that no model pass changes what a neural detector
+sees, so the only real measurement is a detector run against the rendered guide.
+
+### Provenance
+
+This release was driven by a banked, adjudicated audit (2026-08-23) that asked one question of
+the owner's research repositories: which disciplines those projects developed in practice have
+**not** been incorporated here? Insights were banked to disk before any of them was acted on,
+the wave was adjudicated once and whole rather than first-return-first, and every candidate gap
+was confirmed against the template on disk before it earned a change. The confirmed gaps
+clustered; the highest-severity clusters drove the enforcement and fencing work above —
+meta-gating the qualification ledger, testing the hooks instead of trusting them, fencing the
+reviewers, declaring the assumption regime, horizontal claim parity — while the same audit's
+lower-severity findings account for the contract, reference, and last-mile-law additions. The
+clusters left unaddressed are recorded rather than quietly dropped. The changes then went
+through the template's own adversarial review loop — fresh-context lenses, refute-biased
+verification, fixed and re-audited until dry — before release.
+
+---
+
+## v2.5.0 — 2026-08-23
+
+### Removed — `/did-event-study` (owner veto, 2026-08-22)
+
+The staggered-DiD pipeline skill is **removed**. The owner — whose own methods it drove — has
+not vetted its current content, and **methodological prescriptions in the owner's field do not
+ship without the owner's current sign-off**. A recorded sign-off from an earlier version does
+not transfer to later content. Estimation is driven through the canonical packages directly
+(`did`/`DRDID`/`HonestDiD` in R, `csdid`/`drdid`/`honestdid` in Stata). The veto applies to
+ALL unvetted DiD-prescriptive content, removed in the same release:
+the `did-conventions.md` rule, the staggered-DiD sections of `/challenge`'s fork catalogue,
+the honest-DiD entry in its sensitivity-statistics catalogue, the two DiD eval cases, the
+tracked validation report `quality_reports/did_validation.md`, the pre-trends prescriptions
+baked into the editor / referee personas and worked examples, the citation-metadata claim of
+a "validated DiD/event-study workflow", and
+every one-line echo of those prescriptions in the references, guide, and landing page. What
+remains says only: use the canonical packages and the owner's published work. Eval
+measurements are preserved in the qualification ledger as records, annotated.
+
+
+A **verification and currency release.** The substrate moved underneath the template over ten
+weeks — a tool was renamed, two model generations shipped, and a fixed upstream bug left a
+stale blocker in the backlog — while every gate stayed green. v2.5 fixes the facts, and then
+fixes the reason the gates did not notice.
+
+### Fixed — the tool that no longer exists
+
+- **`Task` → `Agent`.** The subagent-spawning tool is `Agent`; `TaskCreate`/`TaskGet`/… are the
+  unrelated agent-teams task-list tools. Migrated across **33 skill frontmatters** and 20 files
+  of body prose, using **dual listing** (`Agent` *and* `Task`) so forks on older Claude Code
+  keep working. The `PostToolUse` matcher `Bash|Task` — which had silently stopped firing on
+  subagents — is now `Bash|Agent|Task`.
+- **`check-skill-integrity.py` generalized** beyond its hard-coded `Task` check. It immediately
+  found a real defect the `Task`-only version could not see: `/new-skill` invoked `Agent`
+  without declaring it.
+
+### Fixed — model currency, and the gate that missed it
+
+- **SSoT → Opus 5 / Sonnet 5** (Fable 5 remains the top tier), with the **provider-dependent
+  alias table** (Bedrock and Google Cloud resolve `sonnet` to Sonnet 4.5; Microsoft Foundry
+  resolves `opus` to Opus 4.6) and a **60-day expiry**.
+- **Consuming surfaces made tier-abstract** (“the Opus tier”, not a point version) so they
+  cannot drift again. The guide's model paragraph now points at the SSoT instead of restating it.
+- **`check-model-versions.sh` tightened.** Its `GA 2026-0` allow-marker was whitelisting *any*
+  line that carried a GA date, which is how two stale guide lines passed. Removed, and the
+  **line-scoped nature of allow markers** is now documented in the gate as a known limitation.
+
+### Fixed — stale recommendations
+
+- `meta-governance.md` claimed MEMORY.md **“stays in Claude's system prompt.”** It does not —
+  there is no `@MEMORY.md` import. Corrected, with the consequence stated.
+- Plugin packaging was deferred on `anthropics/claude-code#11278`, **closed 2025-11-09**.
+- Two `[LEARN:framing]` entries that v2.0 superseded and nobody retired (orchestrator “pattern,
+  not a runtime”; “quality gates advisory only”) marked **SUPERSEDED**, with what still holds.
+- **Auto mode** is no longer plan-gated: since 2026-08-14 it is the default starting mode for
+  new Pro/Max/Team sessions.
+- The **Fable routing rule** is flagged **stale, needs re-measurement** — it rests on a
+  launch-week observation from June that predates Opus 5.
+
+### Added — the verification layer
+
+- **`/vaccinate`** — grade the grader. Seeds known defects plus a **clean control**, runs the
+  check or review agent blind, and reports **recall** and **false-positive rate** into
+  `quality_reports/qualification/LEDGER.md`. Ships a **defect library** of realistic seeds by
+  artifact type. The rule it enforces: *an unqualified check is not weak evidence — it is none.*
+- **`verification-ladder.md`** — seven rungs from *qualify the checker* to the external oracle;
+  the four-layer artifact ladder (existence → **substantiveness** → wiring → coherence); the
+  three independence mechanisms; the specification-search ledger; and how the loop converges
+  (**batch the fixes, then one confirmation round** — not one-finding-per-round).
+- **`external-oracle-process.md`** — the full Claude Code → **GPT-5.6 Sol Pro** process: setup,
+  invocation, artifacts, the **evidence-forcing prompt contract** (location + quote + *failing
+  case*), the **coverage manifest**, the **HELD list**, **CONFIRMED / REFUTED / DOWNGRADED**
+  adjudication, and the hard-won mechanics. With the limit stated as loudly as the appeal:
+  *agreement is not confirmation; models correlate on the same wrong answer.*
+- **`provenance-and-ground-truth.md`** — naming oracles with roles and **pinned commit SHAs**,
+  declaring **precedence before measuring**, the **divergence-kinds taxonomy** (not every
+  difference is a bug), the tolerance registry and the `all.equal` scale trap, the
+  **never re-bless in the commit that moves it** rule, and the clean-room boundary.
+- **The five credibility questions** — reproducibility ≠ implementation fidelity ≠ statistical
+  performance ≠ measurement validity ≠ identification. Evidence for one never clears another.
+
+### Added — enforcement
+
+- **`scripts/check-links.py`** — every relative markdown link and heading anchor must resolve.
+  Wired into the gate suite, so pre-commit and CI both run it. It found **8 broken references**
+  on first run, including that *every* relative link from the guide to a repo file 404s on the
+  published website. Guide links to repo files are now GitHub blob URLs.
+- **`disallowed-tools` on 9 read-only skills.** `/proofread`, `/review-r`, `/visual-audit` and
+  friends keep `Write` (for their report) but can no longer `Edit` the artifact they were told
+  to only report on. Previously nothing stopped them.
+- **Frontmatter conformance.** Audited continuously by the `check-spec-conformance` gate — all 60 skills at release — against the
+  [Agent Skills spec](https://agentskills.io/specification): names, description length, and
+  the 500-line body guidance all pass (median body: 121 lines). `author`/`version` — read by
+  neither the spec nor Claude Code — moved under `metadata:`.
+
+### Added — scheduling guidance that changes a recommendation
+
+`scheduled-routines.md` gains the **three-mechanism decision table**. The consequence for
+research: a cloud routine runs against a **fresh clone with no local file access**, so a
+nightly reproducibility check on local — or restricted — data belongs in **Desktop scheduled
+tasks**, not cloud routines.
+
+### Verification of this release
+
+Every one of the **eight** gates was qualified with seeded defects and a clean control, and
+each carries a row in `quality_reports/qualification/LEDGER.md`. The composite stress test —
+10 seeded defects spanning six gates in one pass, 10/10 caught, 0 false alarms — is recorded
+there too, alongside the per-gate seedings for the remaining two (spec-conformance:
+empty-description seed; derived-counts: wrong journal/phase/snippet/gate-count seeds).
+
+Three gates caught this release's own work before it shipped, and two external Codex review
+rounds (4 + 4 findings) were adjudicated with every finding reproduced before being acted on —
+7 confirmed and fixed, 1 refuted with line evidence. A 14-component adversarial workflow audit
+(85 agents, refute-biased verification) then confirmed 63 further defects, all fixed in this
+release; its full findings are preserved in the qualification ledger's audit note.
+
+And one finding worth more than the fixes: **rebuilding the landing page silently removed it
+from gate coverage.** Every gate stayed green because the page was no longer being *matched*.
+A gate that matches nothing reports nothing. Caught by seeding a defect into that specific
+surface; coverage restored and re-proved. A falling assertion count is now documented as the
+signal to investigate.
+
+
+### Added — the laws from the working machine
+
+`research-agent-laws.md` — 17 laws for running agents on research infrastructure, each paid
+for by a real incident, cross-referencing rather than restating what is already mechanised.
+Three wired into mechanisms: **parallelism must be provably run-shape-independent** (seed by
+task, not worker; prove it with a two-core vs four-core bit-identity check — worker-based
+seeding silently binds results to the execution shape), the **five-question memory capture
+gate** with a ban on just-in-case memories, and **push-on-failure / silence-on-success** for
+routines, where *did not run* is a failure rather than silence.
+
+### Added — writing
+
+- **`writing-with-ai.md`** separates two problems that get conflated: **readability** (editing
+  fixes it, worth doing whoever wrote the text) and **provenance** (only human rewriting fixes
+  it). An article polished through several rounds of surface de-AI-ing came back from a neural
+  detector at **100 % AI-written** — those classifiers read the token-level statistics of LLM
+  generation, which survive any transformation the model applies, *because every transformation
+  is still LLM-generated text*. **A model cannot make its own output stop reading as model
+  output.** Plus the internal-vs-external-facing decision and the human-readable standard.
+- **`/humanize` scope narrowed** accordingly: a clean report means the prose reads *well*, not
+  that it reads *human*.
+- **`/voice-profile`** — the positive counterpart, deferred since v1.9. Extracts a voice profile
+  from your own prior papers using one subagent per document, and audits drafts against it.
+  `/humanize` now reads it and stops flagging documented quirks as AI tells.
+
+### Added — from a usage-insights review of 14 sessions / 367 hours
+
+- **`agent-authored-code.md`.** The top friction was buggy code, and most of it was written by
+  the agent during the session rather than found in the codebase: bulk transformations run
+  without a dry run, paths resolved after a `cd`, `pgrep` monitors matching themselves so a
+  chain waits on itself, long runs with no heartbeat. *A bulk edit is not done when the script
+  exits 0; it is done when you have read a sample of the result.*
+- **Scope Discipline** at the top of `CLAUDE.md` — do exactly what was asked; list adjacent
+  ideas as suggestions instead of implementing them.
+- **`/diagnose` gains contract-first triage and an audit/repair split.** State the documented
+  contract and whether the reported scenario is even *in* contract before writing anything;
+  Phase 1 is read-only with `UNVERIFIED` marked, Phase 2 repairs only approved rows.
+- **`pdf-processing.md` extended for corpora.** The rule was right for one paper and does not
+  scale by multiplication; more than two or three documents means one subagent per document.
+
+**Inventory at release: 60 skills, 18 agents, 36 rules, 7 hooks, 15 references, 8 gates**
+(was 52 / 18 / 32 / 7 / 9 / 3 at v2.1.0).
+
+### Changed — external Oracle referee review adopted (2026-08-22)
+
+An independent GPT-5.6 Sol referee run over the full guide (34 min, complete coverage
+ledger) returned 28 findings and 15 suggestions. Adjudication: 26 findings confirmed and
+fixed (including a safety-relevant false claim that bypass mode still prompts on protected
+paths — current docs say it does not), 2 refuted against the official docs (auto mode IS
+the Pro/Max/Team default; /checkpoint does not collide with a built-in). High-value
+suggestions adopted: adoption ladder, enforcement-contract matrix, pattern pathways,
+red-then-green demo, git survival kit, data-license decision steps, claims legend, typed
+replication tolerances, and two new staleness checks (guide-version parity, reversed
+injection syntax). Remaining suggestions dispositioned in `v2.0-backlog.md` under the
+owner's two rulings: no further session-time enforcement hooks, and no prescriptive
+empirical-practice content without explicit sign-off.
+
+### Upgrading from v2.1
+
+1. Pull, then run `./scripts/install-hooks.sh` if you have not already — the gate suite now
+   includes the link checker.
+2. If you customized skill frontmatter, note that `allowed-tools` now lists **both** `Agent`
+   and `Task`. Keeping a stale `Task`-only entry is harmless (it is a pre-approval list, not a
+   restriction) but you lose pre-approval on subagent calls.
+3. If you customized `guide/workflow-guide.qmd`, expect conflicts — repo-file links moved to
+   GitHub blob URLs.
+
+---
+
 ## v2.1.0 — 2026-06-10
 
 A **currency + citability release**, driven by a 48-agent web-verified audit ("is this actually up to date and the best for economists, today?"). The architecture audit came back clean — the fixes are facts, not structure.
@@ -249,7 +779,7 @@ Promotes the v1.8.0 `/preregister` and `/checkpoint` skills from appendix entrie
 
 ### Pass 2C — `/review-paper --variance N` reviewer-disposition variance mode (2026-05-20)
 
-Adds a fourth `--peer` mode to `/review-paper`: **`--variance` (with integer N, default 3)** runs N referees with independently sampled dispositions from the 6-way taxonomy, then the editor synthesizes the results into a **decision distribution** (not a point estimate). Motivated by AgentReview (ACL 2024, [arXiv:2406.12708](https://arxiv.org/abs/2406.12708)), which found ~37% of paper decisions vary purely from reviewer-disposition sampling.
+Adds a fourth `--peer` mode to `/review-paper`: **`--variance` (with integer N, default 3)** runs N referees with independently sampled dispositions from the 6-way taxonomy, then the editor synthesizes the results into a **decision distribution** (not a point estimate). Motivated by AgentReview (EMNLP 2024, [arXiv:2406.12708](https://arxiv.org/abs/2406.12708)), which found ~37% of paper decisions vary purely from reviewer-disposition sampling.
 
 #### Changed — `/review-paper` SKILL.md
 
@@ -921,4 +1451,4 @@ git merge upstream/main           # or: git rebase upstream/main
 
 Files you almost certainly customized — `CLAUDE.md`, `Bibliography_base.bib`, `Quarto/theme-template.scss`, your lecture files in `Slides/` and `Quarto/`, `.claude/agents/domain-reviewer.md` — may produce merge conflicts. Resolve in favor of your customizations; pull only the infrastructure improvements.
 
-To pin to a specific version: `git checkout v1.10.0` (latest as of 2026-05-31).
+To pin to the newest release: `git checkout $(git describe --tags --abbrev=0)` — or name one explicitly (`git checkout v2.5.0`, latest as of 2026-08-23; see the tags list for what is current when you read this).

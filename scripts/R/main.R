@@ -19,9 +19,9 @@ cleaned <- clean_data(raw)
 fst::write_fst(cleaned, here::here("data", "cleaned", "analysis.fst"))
 
 results <- estimate_model(cleaned)
-qs2::qs_save(results$fit, here::here("output", "model.qs2"))
+qs2::qs_save(results$fit, here::here("scripts", "R", "_outputs", "model.qs2"))
 
 write_main_table(results$fit)
 plot_main_figure(cleaned)
 
-message("Pipeline complete. Outputs in ", here::here("output"), ".")
+message("Pipeline complete. Outputs in ", here::here("scripts", "R", "_outputs"), ".")

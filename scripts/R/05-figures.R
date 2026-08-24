@@ -7,7 +7,7 @@
 #' @param dt A cleaned data.table with columns `x` and `value`.
 #' @param path Output path for the figure (PDF).
 #' @return Invisibly, the path written.
-plot_main_figure <- function(dt, path = here::here("output", "fig_main.pdf")) {
+plot_main_figure <- function(dt, path = here::here("scripts", "R", "_outputs", "fig_main.pdf")) {
   p <- ggplot(dt, aes(x = x, y = value)) +
     geom_point(alpha = 0.6) +
     labs(x = "x", y = "value") +

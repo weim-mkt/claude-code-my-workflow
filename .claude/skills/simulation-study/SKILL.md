@@ -1,27 +1,29 @@
 ---
 name: simulation-study
-description: Scaffold and run a reproducible Monte Carlo simulation study in R — parameterized DGP, an estimator grid, a seeded replication loop, and a summary of bias, RMSE, empirical SE, coverage, size/power with Monte Carlo standard errors. Use when the user says "run a Monte Carlo simulation", "simulation study", "check the bias/coverage of an estimator", "compare estimators in simulation", "size and power simulation", "Monte Carlo experiment", or wants to demonstrate an estimator's finite-sample properties. Produces a numbered R script in `scripts/R/` and saves per-replication raw results + a summary table to `scripts/R/_outputs/`.
-author: Claude Code Academic Workflow
-version: 1.0.0
+description: Scaffold and run a reproducible Monte Carlo simulation study in R — a declared assumption regime, a parameterized DGP, an estimator grid, a seeded replication loop, and a summary of bias, RMSE, empirical SE, coverage, size/power with Monte Carlo standard errors. Use when the user says "run a Monte Carlo simulation", "simulation study", "check the bias/coverage of an estimator", "compare estimators in simulation", "size and power simulation", "Monte Carlo experiment", or wants to demonstrate an estimator's finite-sample properties. Produces a numbered R script in `scripts/R/` and saves per-replication raw results + a summary table to `scripts/R/_outputs/`.
 argument-hint: "[estimator(s) and DGP to study, or path to a script/paper to simulate from]"
 disable-model-invocation: true
-allowed-tools: ["Read", "Grep", "Glob", "Write", "Edit", "Bash", "Task", "Monitor"]
+allowed-tools: ["Read", "Grep", "Glob", "Write", "Edit", "Bash", "Agent", "Task", "Monitor"]
 effort: high
+metadata:
+  author: Claude Code Academic Workflow
+  version: 1.0.0
 ---
 
 # `/simulation-study` — Monte Carlo Simulation Study
 
 Design and run a Monte Carlo experiment that characterizes an estimator's finite-sample behavior, then review it for the bugs that quietly invalidate simulation evidence.
 
-**Input:** `$ARGUMENTS` — a description of the estimator(s) and DGP to study (e.g., "compare TWFE vs Callaway–Sant'Anna ATT under staggered adoption with heterogeneous, dynamic effects"), or a pointer to an existing script/paper whose simulation you want to reproduce or extend.
+**Input:** `$ARGUMENTS` — a description of the estimator(s) and DGP to study (e.g., "compare 2SLS vs LIML under weak instruments with heteroskedasticity"), or a pointer to an existing script/paper whose simulation you want to reproduce or extend.
 
 ---
 
 ## Constraints
 
-- **Follow [`.claude/rules/simulation-conventions.md`](../../rules/simulation-conventions.md)** — the simulation contract (DGP, truth, estimand, MCSE) is non-negotiable.
+- **Follow [`.claude/rules/simulation-conventions.md`](../../rules/simulation-conventions.md)** — the simulation contract (DGP, truth, estimand, MCSE, assumption regime) is non-negotiable.
+- **Declare the assumption regime in the script header** and respect the firewall — an out-of-assumption run never supports a within-assumption claim ([`simulation-conventions.md`](../../rules/simulation-conventions.md) §2).
 - **Follow [`.claude/rules/r-code-conventions.md`](../../rules/r-code-conventions.md)** for general R standards (header, `library()` at top, relative paths, numerical discipline).
-- **Save the script** to `scripts/R/` with a numbered, descriptive name (e.g., `scripts/R/sim_twfe_vs_csdid.R`).
+- **Save the script** to `scripts/R/` with a numbered, descriptive name (e.g., `scripts/R/sim_2sls_vs_liml.R`).
 - **Save outputs** (per-rep raw tibble, summary table, figures) to `scripts/R/_outputs/`.
 - **`saveRDS()` the per-replication raw results**, not just the summary — re-aggregation and the review pass need them.
 - **Run the `sim-reviewer` agent** on the generated script before presenting results, then address Critical/High findings.
@@ -39,6 +41,9 @@ Design and run a Monte Carlo experiment that characterizes an estimator's finite
 
 **Research question:** [what finite-sample property is being demonstrated]
 **Target estimand:** [ATT / ATE / coefficient θ — and how its TRUE value is computed from the DGP params]
+**Maintained assumptions:** [the FULL list the estimator(s) under study require — A1 … An, every one]
+**Regime:** [IN-ASSUMPTION — all hold | OUT-OF-ASSUMPTION — relaxes A[k] only, severity grid {…}, targeting pseudo-estimand …]
+**Verification:** [per assumption, the checkable property of the DGP that establishes it — by construction or by an assertion]
 **DGP:** [structure + the parameters that define it; what is held fixed vs. varied]
 **Estimator grid:** [list each estimator + which estimand it targets + how it returns est/se/CI]
 **Design grid:** [sample sizes, parameter values, scenarios to sweep]
@@ -48,6 +53,8 @@ Design and run a Monte Carlo experiment that characterizes an estimator's finite
 ```
 
 If the estimand or its true value is ambiguous, **stop and ask** before writing code.
+
+If an assumption cannot be verified — you cannot name the property of the DGP that establishes it — the run is **not** `IN-ASSUMPTION`, and per the firewall no within-assumption claim may rest on it. Say so in the Pre-Flight Report rather than letting the header assert what was never checked.
 
 ### Phase 1: The DGP
 
@@ -59,6 +66,8 @@ generate_data <- function(n, params) {
   list(data = df, truth = compute_truth(params))   # truth from params, never from an estimate
 }
 ```
+
+The header's **Verified** lines are earned here: every assumption the regime block claims holds *by a check* gets that check written into the script (a large-draw assertion, a condition number, a `stopifnot()` on the parameter bounds), run once at setup. An assumption whose verification exists only in the comment is asserted, not verified.
 
 ### Phase 2: Estimator Grid
 
@@ -96,7 +105,8 @@ Use `ggplot2` with the project theme: bias / coverage vs. sample size (or scenar
    "Review the simulation script at scripts/R/[name].R"
    ```
 
-3. Address Critical/High findings (coverage-vs-truth, estimand mismatch, missing MCSE, dropped reps) before presenting.
+3. Address Critical/High findings (coverage-vs-truth, estimand mismatch, missing MCSE, dropped reps, an unstated or unverified regime) before presenting.
+4. **Apply the firewall to the presentation itself.** Every claim you are about to make must cite a run whose regime can bear it — consistency, valid analytic standard errors, nominal coverage, and shipping a default require an `IN-ASSUMPTION` run and nothing else ([`simulation-conventions.md`](../../rules/simulation-conventions.md) §2). Carry the regime in every caption — and per row wherever a severity grid mixes the two.
 
 ---
 
@@ -108,6 +118,10 @@ Use `ggplot2` with the project theme: bias / coverage vs. sample size (or scenar
 # Author: [project context]
 # Purpose: [property being demonstrated]
 # Estimand: [target + how truth is computed]
+# Maintained assumptions: [A1 ... An — the FULL list the estimator requires]
+# Regime: [IN-ASSUMPTION | OUT-OF-ASSUMPTION: relaxes A[k] only, severity ...,
+#          targeting pseudo-estimand ...]
+# Verified: [per assumption, the property that was actually checked, not asserted]
 # Outputs: scripts/R/_outputs/[name]_raw.rds, [name]_summary.{rds,csv}
 # ============================================================
 
@@ -116,7 +130,7 @@ library(tidyverse)
 library(furrr)            # parallel reps (optional)
 plan(multisession)        # enable parallel workers; omit this line to run sequentially
 RNGkind("L'Ecuyer-CMRG")
-set.seed(20260531)        # once, YYYYMMDD (simulation-conventions.md §2)
+set.seed(20260531)        # once, YYYYMMDD (simulation-conventions.md §3)
 R   <- 2000L              # MCSE on coverage near .95 ≈ 0.005
 dir.create("scripts/R/_outputs", recursive = TRUE, showWarnings = FALSE)
 
@@ -124,7 +138,7 @@ dir.create("scripts/R/_outputs", recursive = TRUE, showWarnings = FALSE)
 generate_data <- function(n, params) { ... }     # returns list(data, truth)
 
 # 2. Estimators ----
-estimators <- list(twfe = est_twfe, csdid = est_csdid)  # each -> est, se, ci, converged
+estimators <- list(tsls = est_tsls, liml = est_liml)    # each -> est, se, ci, converged
 
 # 3. Run one replication ----
 run_one_rep <- function(rep_id, n, params) { ... }      # -> tibble rows (one per estimator)
@@ -170,6 +184,7 @@ write_csv(summary_tbl, "scripts/R/_outputs/[name]_summary.csv")
 
 ## Important
 
+- **State the regime, then respect the firewall.** A DGP that violates a maintained assumption produces a table on which every other check here passes — and a within-assumption claim built on it is unsupported however clean the numbers look.
 - **The truth comes from the DGP, never from an estimate.** Coverage is the CI containing the *true* parameter.
 - **No result without an MCSE.** If two estimators differ by less than ~2× MCSE, say so.
 - **Save raw, not just summary.** A number that exists only in the console cannot be audited or put on a slide.

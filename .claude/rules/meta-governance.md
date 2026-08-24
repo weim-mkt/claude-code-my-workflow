@@ -42,6 +42,33 @@ When creating or modifying content, ask:
 - Personal preferences (90/100 quality gate for this project)
 - API keys, credentials, local workarounds
 
+### "Does it prescribe a method the owner has not vetted?"
+
+> **Owner ruling, 2026-08-23.** The v2.5 veto on unvetted difference-in-differences content is
+> **extended to empirical causal methods generally** — regression discontinuity, synthetic
+> control, instrumental variables, event studies, and matching-as-identification. Nothing in
+> this repository — skill, rule, agent, reference, or template — tells a user *how to use* one
+> of those methods until the owner vets the text. The reason, in the owner's words: avoid
+> making strong claims on guidelines without vetting, and the owner is not ready to vet now.
+
+**Still ships** (none of these is a prescription):
+
+- **Neutral taxonomy** — method names as category lists (paper types, discipline cards, journal profiles).
+- **Journal- and field-content descriptions** — what a venue publishes, not what you should run.
+- **Conditional canonical-package pointers** — "if the paper's own design calls for that package, drive it, and never reimplement the estimator."
+- **Citations to the owner's published work.**
+- **Explicit decline-to-judge stances** — "whether the identification strategy is sound is a `/review-paper` question."
+- **Historical records** — CHANGELOG entries and backlogs are never edited. A `MEMORY.md` lesson may be *extended* with a dated addendum, and may be **compressed or merged** to hold the file's size cap, provided the lesson, its incident evidence, and its date survive the edit; what must never happen is a lesson quietly losing what it was paid for.
+
+**Does not ship without a current sign-off:** which diagnostics or tests to run, which
+assumptions to verify, which estimator, specification, or tuning parameter to choose, referee
+and editor personas demanding method-specific artifacts, and catalogue sections enumerating
+method-specific forks or sensitivity statistics. Where such a section was removed, a one-line
+note says so in its place — the absence should be visible, not mysterious.
+
+The gate is the owner's **current, dated sign-off on the current text**. A sign-off attaches to
+the content it reviewed, not to the surface's name.
+
 ---
 
 ## Memory Management: Two-Tier System
@@ -58,13 +85,40 @@ When creating or modifying content, ask:
 
 **Review cadence:** After every significant session (plan approval, feature implementation)
 
-**Size limit:** Keep under 200 lines (stays in Claude's system prompt)
+**Size limit:** Keep under 200 lines **and** under 25KB.
+
+> **Corrected 2026-08-21.** This previously read "stays in Claude's system prompt."
+> That is **not** how this file loads: `CLAUDE.md` only markdown-links `MEMORY.md`, it does
+> not `@`-import it, so nothing puts it in the system prompt automatically — it is read on
+> demand. Two consequences: (1) the size limit protects readability, not a context budget;
+> (2) `[LEARN]` entries reach a session only when the file is actually read. If we want the
+> documented behaviour, add `@MEMORY.md` to `CLAUDE.md` — but note the file is already
+> over the 25KB threshold at which trailing content is dropped, it would need
+> trimming first. **Resolved at v2.5.0 (2026-08-23):** `MEMORY.md` stays linked-not-imported,
+> and the cap is enforced by trimming — the file was compressed under 25KB during the release.
 
 ---
 
-### .claude/state/personal-memory.md (gitignored, local only)
+### The local tier: native auto memory (v2.5 — replaces `personal-memory.md`)
 
-**Purpose:** Machine-specific and user-specific learnings
+**Purpose:** Machine-specific and user-specific learnings.
+
+**Where it lives now:** Claude Code ships this natively. It is **on by default** and writes to
+`~/.claude/projects/<project>/memory/` — a `MEMORY.md` index plus one topic file per memory,
+each typed `user` / `feedback` / `project` / `reference`. Machine-local, never committed,
+excluded from transcript cleanup, and it records a `modified` timestamp so you can see how
+current a fact is.
+
+**Owner ruling (2026-08-21): keep auto memory on.** The two-tier idea was right; the
+hand-rolled plumbing is obsolete. `.claude/state/personal-memory.md` is **retired** — if you
+have one from an earlier version it still works as a plain file, but nothing writes to it and
+`/promote-memory` no longer reads it.
+
+**The one caveat worth knowing:** auto memory is an *un-logged context input*. It can influence
+a session invisibly to a replicator. For sessions that produce a **reported number**, note in
+the analysis log that auto memory was active, or disable it for that session
+(`CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`). This is a judgement call about auditability, not a
+correctness bug — see [`replication-protocol.md`](replication-protocol.md).
 
 **What goes here:**
 - Machine setup: `[LEARN:latex] XeLaTeX on macOS requires TEXINPUTS=../Preambles`
@@ -86,12 +140,12 @@ When creating or modifying content, ask:
 - Clone repo → gets MEMORY.md with generic learnings ✓
 - Gets all infrastructure (skills, agents, rules, templates) ✓
 - Gets up-to-date guide and documentation ✓
-- Builds `.claude/state/personal-memory.md` specific to desktop setup
+- Accumulates its own native auto memory for the desktop setup
 
 **Machine B (laptop):**
 - Clone same repo → gets same MEMORY.md ✓
 - Gets same infrastructure ✓
-- Builds DIFFERENT `.claude/state/personal-memory.md` for laptop setup
+- Accumulates DIFFERENT native auto memory for the laptop setup (it is machine-local by design)
 
 **Key insight:** Generic patterns sync via git, personal patterns stay local (or manually copied if truly needed).
 
@@ -221,14 +275,14 @@ As this repository evolves, meta-governance may need updates.
 | Content Type | Commit to Repo? | Where It Goes | Syncs Across Machines? |
 |--------------|----------------|---------------|----------------------|
 | Workflow patterns (generic) | ✅ Yes | MEMORY.md | ✅ Yes (via git) |
-| Machine-specific setup | ❌ No | .claude/state/personal-memory.md | ❌ No (gitignored) |
+| Machine-specific setup | ❌ No | native auto memory (`~/.claude/projects/<project>/memory/`) | ❌ No (machine-local) |
 | Templates (generic) | ✅ Yes | templates/ | ✅ Yes |
 | Skills (generic) | ✅ Yes | .claude/skills/ | ✅ Yes |
 | Rules (path-scoped, generic) | ✅ Yes | .claude/rules/ | ✅ Yes |
 | Agents (generic) | ✅ Yes | .claude/agents/ | ✅ Yes |
 | Hooks (generic behavior) | ✅ Yes | .claude/hooks/ | ✅ Yes |
-| Session logs | ✅ Yes | quality_reports/session_logs/ | ✅ Yes |
-| Plans | ✅ Yes | quality_reports/plans/ | ✅ Yes |
+| Session logs | ❌ No (gitignored since v2.0 — owner work, not template content; force-add a specific log if it documents template history) | quality_reports/session_logs/ | ❌ No |
+| Plans | ❌ No (gitignored since v2.0, same reason) | quality_reports/plans/ | ❌ No |
 | Local settings | ❌ No | .claude/settings.local.json | ❌ No (gitignored) |
 | Session state | ❌ No | .claude/state/ | ❌ No (gitignored) |
 | Build artifacts | ❌ No | .aux, .log, .synctex.gz | ❌ No (gitignored) |
@@ -243,9 +297,9 @@ As this repository evolves, meta-governance may need updates.
 
 **The solution:**
 - Commit generic patterns that help all users (MEMORY.md, templates, infrastructure)
-- Keep specific learnings local (.claude/state/personal-memory.md, gitignored)
+- Keep specific learnings local (native auto memory — machine-local, never committed)
 - Dogfood our own workflow (plan-first, spec-then-plan, quality gates)
 - Document with examples from multiple domains (not just our use case)
 - Review quarterly: promote generic patterns, refine specific ones
 
-**When in doubt:** Ask "Would a biology PhD student forking this repo for lab protocols benefit from this knowledge?" If yes → MEMORY.md. If no → personal-memory.md.
+**When in doubt:** Ask "Would a biology PhD student forking this repo for lab protocols benefit from this knowledge?" If yes → MEMORY.md. If no → native auto memory.

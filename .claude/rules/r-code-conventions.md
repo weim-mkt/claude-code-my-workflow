@@ -81,7 +81,7 @@ ggsave(filepath, width = 12, height = 5, bg = "transparent")
 ```r
 modelsummary::modelsummary(
   list("(1)" = fit),
-  output   = here::here("output", "tab_main.tex"),
+  output   = here::here("scripts", "R", "_outputs", "tab_main.tex"),
   stars    = c("*" = 0.1, "**" = 0.05, "***" = 0.01),
   gof_omit = "AIC|BIC|Log.Lik|RMSE"
 )
@@ -96,7 +96,7 @@ modelsummary::modelsummary(
 
 ```r
 fst::write_fst(dt, here::here("data", "cleaned", "descriptive_name.fst"))
-qs2::qs_save(model_fit, here::here("output", "descriptive_name.qs2"))
+qs2::qs_save(model_fit, here::here("scripts", "R", "_outputs", "descriptive_name.qs2"))
 ```
 
 ## 7. Project Structure
@@ -107,10 +107,10 @@ qs2::qs_save(model_fit, here::here("output", "descriptive_name.qs2"))
   00-setup.R      # Packages + global env vars
   01-load_data.R  # Load raw data
   02-*.R, 03-*.R  # Subsequent pipeline steps
+  _outputs/       # Analysis outputs, tables, model results (gitignored)
 ./data/
   raw/            # Raw data (read-only)
   cleaned/        # Cleaned/processed data
-./output/         # Analysis outputs, tables, model results
 ```
 
 - `main.R` orchestrates by sourcing numbered scripts in order
