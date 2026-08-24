@@ -394,7 +394,7 @@ Rules use path-scoped loading: **always-on** rules load every session; **path-sc
 | Python 3 (3.9+), runnable as `python3` | The hooks and the gate scripts. Without a working `python3` the hooks do not run, and `gh` commands are refused, because `issue-guard` is registered to fail closed ([#179](https://github.com/pedrohcgs/claude-code-my-workflow/issues/179) for Windows) | Preinstalled on macOS/Linux; [python.org](https://www.python.org/) for Windows |
 | XeLaTeX | LaTeX compilation (Beamer `HelloWorld`, real lectures) | [TeX Live](https://tug.org/texlive/) or [MacTeX](https://tug.org/mactex/) |
 | [Quarto](https://quarto.org) | Web slides (Quarto `HelloWorld`, real lectures) | [quarto.org/docs/get-started](https://quarto.org/docs/get-started/) |
-| R | Figures and analysis (`/data-analysis`, `scripts/R/` template) | [r-project.org](https://www.r-project.org/) |
+| R | Figures and analysis (`/data-analysis`, `scripts/R/` directory) | [r-project.org](https://www.r-project.org/) |
 | pdf2svg | TikZ → SVG for Quarto (`/extract-tikz`) | `brew install pdf2svg` (macOS), `apt install pdf2svg` (Debian) |
 | [gh CLI](https://cli.github.com/) | PR / issue workflow | `brew install gh` (macOS), `apt install gh` (Debian) |
 | poppler (optional) | Beamer page screenshots, page-to-frame map and log digest (`scripts/beamer-qa.py`, run by `/visual-audit`) | `brew install poppler` (macOS), `apt install poppler-utils` (Debian) |
