@@ -35,7 +35,7 @@ Before writing any R code:
 - [ ] Follow `r-code-conventions.md` for all R coding standards
 - [ ] Translate line-by-line initially -- don't "improve" during replication
 - [ ] Match original specification exactly (covariates, sample, clustering, SE computation)
-- [ ] Save all intermediate results as RDS
+- [ ] Save intermediate results: `fst::write_fst()` for tabular data, `qs2::qs_save()` for model objects
 
 ### Stata to R Translation Pitfalls
 

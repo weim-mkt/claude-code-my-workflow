@@ -47,7 +47,7 @@ paths:
 | Critical | Domain-specific bug | -30 | reviewer |
 | Critical | Hardcoded absolute path | -20 | script |
 | Critical | Missing library() call | -10 | reviewer |
-| Major | Missing set.seed() where randomness is used | -10 | script |
+| Major | Missing set.seed(888) before each randomness step | -10 | script |
 | Major | Missing figure generation | -5 | reviewer |
 | Major | Missing saved .rds of computed results | -5 | reviewer |
 | Minor | Style violation | -1 | reviewer |

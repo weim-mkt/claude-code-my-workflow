@@ -72,7 +72,7 @@ R_SCRIPT_RUBRIC = {
     'major': {
         'missing_set_seed': {'points': 10, 'label': 'Missing set.seed() where randomness is used'},
         'missing_figure': {'points': 5, 'label': 'Missing figure generation'},
-        'missing_rds': {'points': 5, 'label': 'Missing saved .rds of computed results'},
+        'missing_cache': {'points': 5, 'label': 'Missing saved cache (fst/qs2) of computed results'},
     },
     'minor': {
         'style_violation': {'points': 1, 'label': 'Style violation'},
@@ -560,7 +560,7 @@ class QualityScorer:
             self.issues['major'].append({
                 'type': 'missing_set_seed',
                 'description': 'Missing set.seed() for reproducibility',
-                'details': 'Add set.seed(YYYYMMDD) after library() calls',
+                'details': 'Add set.seed(888) before each randomness step',
                 'points': pts(R_SCRIPT_RUBRIC, 'major', 'missing_set_seed')
             })
             self.score -= pts(R_SCRIPT_RUBRIC, 'major', 'missing_set_seed')
