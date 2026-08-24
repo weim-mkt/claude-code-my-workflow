@@ -327,6 +327,17 @@ recorded as open debt, and it is how the redirection defect above survived. And 
 model-drafted: `writing-with-ai.md` is explicit that no model pass changes what a neural detector
 sees, so the only real measurement is a detector run against the rendered guide.
 
+> **Fork delta (weim-mkt), 2026-08-24 — the R rubric's machine-path check.** Upstream's
+> `check_hardcoded_paths` in `scripts/quality_score.py` tested the raw line for a quote followed
+> by `/` or `\`, which is not a path test: `cat("...\n")`, `gsub("\\s+", …)` and
+> `sep = "/"` all matched. On the owner's 655-file R corpus it flagged 2,509 lines across 335
+> files, only 211 of them genuine — and each false hit is a −20 CRITICAL, so scripts already
+> using `here::here()` scored 40/100 and were blocked by `/commit` and by `.githooks/pre-commit`.
+> It also missed `~/…` entirely, the spelling most likely to appear in a working script. This
+> fork tests the *content* of each string literal instead, with quote, escape, comment and
+> raw-string tracking: 180 lines / 66 files on the same corpus, 9/9 recall and 0/13 false alarms
+> on the fixtures now in the qualification ledger. Not yet upstreamed.
+
 ### Provenance
 
 This release was driven by a banked, adjudicated audit (2026-08-23) that asked one question of

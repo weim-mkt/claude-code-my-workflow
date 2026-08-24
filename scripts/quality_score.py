@@ -32,6 +32,30 @@ def _timeout(env_name: str, default: int) -> int:
         return default
 
 # ==============================================================================
+# MACHINE-PATH DETECTION (used by the R rubric)
+# ==============================================================================
+
+# A string literal whose CONTENT names a machine-specific path. Anchored at the
+# start: a leading `^`, a backslash escape, or an ordinary word makes it a regex
+# or a format string, not a path.
+MACHINE_PATH = re.compile(r"""
+    ^(?:
+        ~/                       # home-relative:  "~/data/raw.csv"
+                                 #   (a BARE "~" is R's formula operator)
+      | [A-Za-z]:[/\\]           # Windows drive:  "C:/x", "D:\shopify\x"
+      | /[^/\s]                  # POSIX absolute: "/Users/...", "/Volumes/..."
+                                 #   ("/" alone is a separator, not a path)
+    )
+""", re.VERBOSE)
+
+# Absolute roots that do not break a replication package.
+PORTABLE_ROOT = re.compile(r"^/(tmp|dev|proc|sys)(/|$)")
+
+# R raw-string opener: r"(", R'---[', ...
+RAW_STRING_OPEN = re.compile(r"""[rR](['"])(-*)([\[({])""")
+
+
+# ==============================================================================
 # SCORING RUBRIC (from .claude/rules/quality-gates.md)
 # ==============================================================================
 
@@ -248,17 +272,81 @@ class IssueDetector:
             return None, "syntax not verified — Rscript not installed"
 
     @staticmethod
+    def _r_string_literals(content: str) -> List[Tuple[int, str]]:
+        """(line_number, literal_content) for every string in R source.
+
+        Quote state is carried across the whole file, so a `#` INSIDE a string
+        is not a comment, a `#` outside one starts a comment (a path named in
+        prose is not code), and a literal spanning lines is attributed to the
+        line it opens on. R raw strings -- r"(...)", r'---[...]---' -- are read
+        as raw.
+        """
+        out: List[Tuple[int, str]] = []
+        i, line, n = 0, 1, len(content)
+        while i < n:
+            ch = content[i]
+            if ch == '\n':
+                line += 1
+                i += 1
+                continue
+            if ch == '#':                        # comment: skip to end of line
+                while i < n and content[i] != '\n':
+                    i += 1
+                continue
+            if ch in 'rR' and i + 1 < n and content[i + 1] in '\'"':
+                m = RAW_STRING_OPEN.match(content, i)
+                if m:
+                    quote, dashes, opener = m.group(1), m.group(2), m.group(3)
+                    closer = {'[': ']', '(': ')', '{': '}'}[opener]
+                    end = content.find(closer + dashes + quote, m.end())
+                    stop = end if end != -1 else n
+                    out.append((line, content[m.end():stop]))
+                    line += content.count('\n', i, stop)
+                    i = stop + len(dashes) + 2 if end != -1 else n
+                    continue
+            if ch in '\'"':
+                start_line, quote, buf = line, ch, []
+                i += 1
+                while i < n:
+                    c = content[i]
+                    if c == '\\' and i + 1 < n:  # escape: keep both characters
+                        buf.append(content[i:i + 2])
+                        i += 2
+                        continue
+                    if c == quote:
+                        i += 1
+                        break
+                    if c == '\n':
+                        line += 1
+                    buf.append(c)
+                    i += 1
+                out.append((start_line, ''.join(buf)))
+                continue
+            i += 1
+        return out
+
+    @staticmethod
     def check_hardcoded_paths(content: str) -> List[int]:
-        """Detect absolute paths in R scripts."""
-        issues = []
-        lines = content.split('\n')
+        """Lines whose string literals name a machine-specific path.
 
-        for i, line in enumerate(lines, 1):
-            if re.search(r'["\'][/\\]|["\'][A-Za-z]:[/\\]', line):
-                if not re.search(r'http:|https:|file://|/tmp/', line):
-                    issues.append(i)
-
-        return issues
+        The test is applied to the literal's CONTENT, never to the raw line.
+        The line-level regex this replaced matched a quote followed by a slash
+        or a backslash, so `cat("...\\n")`, `gsub("\\\\d{8}", ...)` and
+        `paste(a, b, sep = "/")` were all scored as hardcoded absolute paths --
+        92% of its findings on real R code were false, and each one is a -20
+        CRITICAL, so scripts already using here::here() were blocked at commit.
+        It also missed `~/...` entirely, the spelling most likely to appear in
+        a working script.
+        """
+        issues: List[int] = []
+        for line, literal in IssueDetector._r_string_literals(content):
+            # Collapse the doubled backslashes of a Windows path so
+            # "D:\\shopify\\x.fst" is tested in the shape it names.
+            candidate = literal.replace('\\\\', '\\')
+            if MACHINE_PATH.match(candidate) and not PORTABLE_ROOT.match(candidate):
+                if line not in issues:
+                    issues.append(line)
+        return sorted(issues)
 
     @staticmethod
     def check_latex_syntax(content: str) -> List[Dict]:
