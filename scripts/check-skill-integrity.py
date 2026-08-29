@@ -55,6 +55,19 @@ from urllib.parse import unquote
 
 REPO = Path(__file__).resolve().parent.parent
 
+# Git worktrees live under .claude/worktrees/ and are transient checkouts of
+# this same repository. Scanning them double-counts every document and reports
+# failures that are not real: a worktree's relative link targets resolve against
+# its own root, where the checked-out branch may not have the referenced file.
+# Only the main checkout is authoritative.
+WORKTREES = REPO / ".claude" / "worktrees"
+
+
+def in_worktree(path: Path) -> bool:
+    """True if path sits inside a git worktree rather than the main checkout."""
+    return WORKTREES in path.parents
+
+
 # ---- Known tool names the harness exposes ------------------------------------
 
 TOOLS = {
@@ -221,6 +234,21 @@ FLAG_RE = re.compile(r"--[a-z][a-z0-9-]*\b(?!=)")
 # If a future skill needs a kwarg-style flag, document it explicitly.
 
 
+# Skills that drive an external CLI document that CLI's own flags (e.g. a /codex
+# skill documents `codex`'s --skip-git-repo-check). Those are the wrapped tool's
+# flags, not slash-command flags of the skill, so they are exempt from forward
+# argument-hint parity. Keyed by skill directory name. (Same per-entity shape
+# as RULE_KEYWORDS in Check 4; a forker adding a CLI-wrapper skill adds an entry
+# here rather than polluting the skill's frontmatter with a non-standard key.)
+WRAPPED_CLI_FLAGS: dict[str, set[str]] = {
+    "codex": {
+        "--skip-git-repo-check",
+        "--dangerously-bypass-approvals-and-sandbox",
+        "--sandbox", "--config", "--model", "--cd", "--last",
+    },
+}
+
+
 def check_flag_parity() -> list[tuple[str, str, str]]:
     """Bidirectional argument-hint ↔ body flag parity.
 
@@ -235,6 +263,12 @@ def check_flag_parity() -> list[tuple[str, str, str]]:
     Reverse (hint → body): a flag advertised in argument-hint must appear
     somewhere in the body as a code-span (more permissive than forward —
     a flag listed in a reference table without option-verbs still counts).
+
+    Wrapped-CLI exemption: a skill that drives an external CLI (e.g. a /codex
+    skill documenting `codex`'s own `--skip-git-repo-check`) documents that
+    CLI's flags, which are not slash-command flags of this skill. Those are
+    listed per skill in WRAPPED_CLI_FLAGS above and are exempt from forward
+    argument-hint parity.
     """
     findings: list[tuple[str, str, str]] = []
     # Pattern: another skill's name followed by its flag (e.g. "/review-paper
@@ -276,6 +310,10 @@ def check_flag_parity() -> list[tuple[str, str, str]]:
         if not isinstance(hint, str):
             continue
         hint_flags = set(FLAG_RE.findall(hint))
+        # Flags belonging to a wrapped external CLI (see WRAPPED_CLI_FLAGS) are
+        # the wrapped tool's flags, not slash-command flags of this skill, so
+        # they are exempt from forward argument-hint parity.
+        external_cli_flags = WRAPPED_CLI_FLAGS.get(skill_md.parent.name, set())
         documented_flags: set[str] = set()
         for line in body.splitlines():
             # Skip lines that describe another skill's flag
@@ -292,7 +330,10 @@ def check_flag_parity() -> list[tuple[str, str, str]]:
                 for cf in code_flag_re.findall(cleaned):
                     documented_flags.add(cf)
         # Forward: flags documented in body but missing from argument-hint
-        missing_from_hint = {f for f in documented_flags - hint_flags if len(f) > 3}
+        missing_from_hint = {
+            f for f in documented_flags - hint_flags - external_cli_flags
+            if len(f) > 3
+        }
         if missing_from_hint:
             findings.append((
                 "P2",
@@ -419,7 +460,7 @@ def check_anchor_resolution() -> list[tuple[str, str, str]]:
         if root.is_file() and root.suffix == ".md":
             mds.append(root)
         elif root.is_dir():
-            mds.extend(root.rglob("*.md"))
+            mds.extend(m for m in root.rglob("*.md") if not in_worktree(m))
     tracked = _tracked()
     if tracked is not None:            # an untracked copy (a worktree under .claude/) is not the repo's
         mds = [md for md in mds if _rel(md) in tracked]
