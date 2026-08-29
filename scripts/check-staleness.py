@@ -10,7 +10,7 @@ import re, os, sys, glob, subprocess
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # defect-library.md is a CATALOGUE of anti-patterns to seed — it contains them by design.
-SKIP = re.compile(r'(^|/)(CHANGELOG\.md|defect-library\.md|\.git/|node_modules/|quality_reports/)')
+SKIP = re.compile(r'(^|/)(CHANGELOG\.md|defect-library\.md|\.git/|node_modules/|quality_reports/|\.claude/worktrees/)')
 
 def surfaces():
     out = []
