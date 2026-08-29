@@ -23,7 +23,7 @@ Turn a noisy academic inbox into a short, decision-ready digest. Fetch recent ma
 ## When NOT to use
 
 - To actually send a reply, accept an invite, or book an event — this skill stops at *proposals*. You confirm and execute.
-- To handoff a project to a co-author — that's [`/coauthor-brief`](../coauthor-brief/SKILL.md).
+- To hand off a project to a co-author — that's [`/coauthor-brief`](../coauthor-brief/SKILL.md).
 - To draft the R&R response document itself — that's [`/respond-to-referees`](../respond-to-referees/SKILL.md).
 
 ## Phases

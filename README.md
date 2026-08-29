@@ -35,6 +35,10 @@ cd my-project
                                    # upstream merge hand-merges generated HTML.
 ```
 
+Running research projects off this template? Each downstream project updates its vendored
+copy with `scripts/sync-from-template.sh <project-root> [--apply]` (manifest-driven: your
+per-project adaptations are 3-way merged or left alone, never clobbered).
+
 Replace `YOUR_USERNAME` with your GitHub username.
 
 ### 2. Start Claude Code and Paste This Prompt
