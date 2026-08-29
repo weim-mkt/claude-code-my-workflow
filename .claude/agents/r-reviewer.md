@@ -131,7 +131,7 @@ Produce a thorough, actionable code review report. You do NOT edit files — you
 
 ## Report Format
 
-Return this report as your final response; the calling skill saves it to `quality_reports/[script_name]_r_review.md`:
+Return this report as your final response; the calling skill saves it to `quality_reports/[script_name]_r_review.md` (your `tools:` grant is read-only by design):
 
 ```markdown
 # R Code Review: [script_name].R

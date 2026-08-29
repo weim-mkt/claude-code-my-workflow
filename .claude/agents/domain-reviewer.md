@@ -145,7 +145,7 @@ Check the target lecture against the knowledge base:
 
 ## Report Format
 
-Return this report as your final response; the calling skill saves it to `quality_reports/[FILENAME_WITHOUT_EXT]_substance_review.md`:
+Return this report as your final response; the calling skill saves it to `quality_reports/[FILENAME_WITHOUT_EXT]_substance_review.md` (your `tools:` grant is read-only by design):
 
 ```markdown
 # Substance Review: [Filename]

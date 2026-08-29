@@ -17,7 +17,10 @@
 # Usage:  ./scripts/nightly-repro-check.sh   (run from the repo root or via cron)
 #
 set -uo pipefail
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+# Root from $0, like every other script here — NOT from the caller's cwd.
+# Under cron the cwd is $HOME: the old `git rev-parse || pwd` fallback then
+# inspected the wrong directory and exited 0 with "nothing to check".
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT" || exit 2
 
 python3 - "$REPO_ROOT" <<'PY'

@@ -17,6 +17,7 @@ import sys
 import os
 import argparse
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import re
@@ -106,7 +107,7 @@ R_SCRIPT_RUBRIC = {
 
 BEAMER_RUBRIC = {
     'critical': {
-        'compilation_failure': {'points': 100, 'auto_fail': True, 'label': 'Compilation failure (LaTeX syntax)'},
+        'compilation_failure': {'points': 100, 'auto_fail': True, 'label': 'Compilation failure (XeLaTeX, or LaTeX syntax when unverifiable)'},
         'undefined_citation': {'points': 15, 'label': 'Undefined citation'},
         'overfull_hbox': {'points': 10, 'label': 'Overfull hbox (long line or equation in a frame)'},
     },
@@ -192,6 +193,47 @@ class IssueDetector:
             return None, f"compilation not verified — render exceeded {limit}s (raise QUALITY_QUARTO_TIMEOUT for large decks)"
         except FileNotFoundError:
             return None, "compilation not verified — Quarto not installed"
+
+    @staticmethod
+    def check_beamer_compilation(filepath: Path) -> Tuple[Optional[bool], str]:
+        """Compile the Beamer deck with XeLaTeX. Returns True (ok), False (real
+        failure), or None (could-not-verify: no \\documentclass, timed out, or
+        tool missing — NOT a quality failure).
+
+        One -halt-on-error pass decides compiles/does-not-compile. Undefined
+        references and citations settle on later passes and are scored
+        separately, so the extra two passes buy nothing here. Output is written
+        to a temp directory, never beside the source.
+        """
+        content = filepath.read_text(encoding='utf-8', errors='replace')
+        if '\\documentclass' not in content:
+            return None, "compilation not verified — no \\documentclass (fragment, not a standalone deck)"
+
+        limit = _timeout("QUALITY_XELATEX_TIMEOUT", 120)
+        # Mirror the project's documented invocation: preambles live one level
+        # up from Slides/. A trailing ':' keeps TeX's default search path.
+        env = dict(os.environ)
+        preambles = filepath.parent.parent / 'Preambles'
+        if preambles.is_dir():
+            env['TEXINPUTS'] = f"{preambles}:{env.get('TEXINPUTS', '')}"
+        try:
+            with tempfile.TemporaryDirectory() as outdir:
+                result = subprocess.run(
+                    ['xelatex', '-interaction=nonstopmode', '-halt-on-error',
+                     '-output-directory', outdir, filepath.name],
+                    capture_output=True, text=True, timeout=limit,
+                    cwd=filepath.parent, env=env
+                )
+                if result.returncode != 0:
+                    # TeX reports errors on stdout, not stderr.
+                    errors = [ln for ln in result.stdout.splitlines()
+                              if ln.startswith('!')]
+                    return False, "\n".join(errors) or result.stdout[-400:].strip()
+                return True, ""
+        except subprocess.TimeoutExpired:
+            return None, f"compilation not verified — xelatex exceeded {limit}s (raise QUALITY_XELATEX_TIMEOUT for large decks)"
+        except FileNotFoundError:
+            return None, "compilation not verified — XeLaTeX not installed"
 
     @staticmethod
     def check_equation_overflow(content: str) -> List[int]:
@@ -653,20 +695,36 @@ class QualityScorer:
         """Score Beamer/LaTeX lecture slides."""
         content = self.filepath.read_text(encoding='utf-8')
 
-        # Check for LaTeX syntax issues (without compiling)
-        syntax_issues = IssueDetector.check_latex_syntax(content)
-        if syntax_issues:
-            # Mismatched environments are treated as compilation risk
-            for issue in syntax_issues:
-                self.issues['critical'].append({
-                    'type': 'compilation_failure',
-                    'description': f'LaTeX syntax issue at line {issue["line"]}',
-                    'details': issue['description'],
-                    'points': pts(BEAMER_RUBRIC, 'critical', 'compilation_failure')
-                })
+        # Check compilation. None = could-not-verify (fragment / timeout / tool
+        # missing): record a note and fall back to the static syntax heuristic
+        # rather than scoring 0.
+        compiles, error = IssueDetector.check_beamer_compilation(self.filepath)
+        if compiles is False:
             self.auto_fail = True
+            self.issues['critical'].append({
+                'type': 'compilation_failure',
+                'description': 'XeLaTeX compilation failed',
+                'details': error[:200],
+                'points': pts(BEAMER_RUBRIC, 'critical', 'compilation_failure')
+            })
             self.score = 0
             return self._generate_report()
+        if compiles is None:
+            self.unverified.append(error)
+            # The compiler could not answer, so the heuristic is all we have.
+            syntax_issues = IssueDetector.check_latex_syntax(content)
+            if syntax_issues:
+                # Mismatched environments are treated as compilation risk
+                for issue in syntax_issues:
+                    self.issues['critical'].append({
+                        'type': 'compilation_failure',
+                        'description': f'LaTeX syntax issue at line {issue["line"]}',
+                        'details': issue['description'],
+                        'points': pts(BEAMER_RUBRIC, 'critical', 'compilation_failure')
+                    })
+                self.auto_fail = True
+                self.score = 0
+                return self._generate_report()
 
         # Check for undefined/broken citations (\cite, \citep, \citet patterns)
         bib_file = self.filepath.parent.parent / 'Bibliography_base.bib'

@@ -78,7 +78,7 @@ You review the **package layer**. You do **not** re-audit general R numerical/st
 
 ## Report Format
 
-Return this report as your final response; the calling skill saves it to `quality_reports/[package_name]_package_review.md`:
+Return this report as your final response; the calling skill saves it to `quality_reports/[package_name]_package_review.md` (your `tools:` grant is read-only by design):
 
 ```markdown
 # R Package Review: [package_name]

@@ -4,6 +4,12 @@ description: Multi-agent comprehensive slide review (visual + pedagogy + proofre
 argument-hint: "[QMD or TEX filename] [--fast] [--skip-substance | --acknowledge-template-domain-reviewer]"
 allowed-tools: ["Read", "Grep", "Glob", "Write", "Bash", "Agent", "Task"]
 context: fork
+# Fork contract: BOTH user decisions this skill needs (template-domain-reviewer
+# disposition, reuse-vs-rerun of existing reports) are resolved in Step 0
+# Pre-Flight BEFORE any forked work starts — a fork cannot ask the user
+# (orchestrator-protocol.md, RUN_CONFIG). If invoked as a fork WITHOUT those
+# answers pre-supplied in the invocation, return immediately with the
+# pre-flight questions as the result instead of guessing.
 ---
 
 # Slide Excellence Review
@@ -133,7 +139,9 @@ Stop here and return these options — this skill runs in a forked context and c
 
 ## Step 4: Run Review Agents in Parallel
 
-Spawn only the agents whose conditions hold:
+Spawn only the agents whose conditions hold. Every reviewer's grant is
+read-only: each returns its report inline, and **you** write it to the `Save:`
+path listed below before reducing.
 
 **Always-on for slides (`.tex` or `.qmd`):**
 

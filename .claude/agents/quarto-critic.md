@@ -101,7 +101,7 @@ If ANY of these fail, the verdict is **REJECTED**:
 
 ## Report Format
 
-**Return the report as your final response;** the calling skill saves it to `quality_reports/[Lecture]_qa_critic_round[N].md`.
+**Return the report as your final response;** the calling skill saves it to `quality_reports/[Lecture]_qa_critic_round[N].md` and hands it to `quarto-fixer` (your `tools:` grant is read-only by design — the critic never writes files).
 
 ```markdown
 # Quarto vs Beamer Audit: [Lecture Name]

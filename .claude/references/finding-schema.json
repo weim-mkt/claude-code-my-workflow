@@ -27,7 +27,8 @@
     },
     "file": {
       "type": "string",
-      "description": "repo-relative path"
+      "description": "repo-relative path",
+      "minLength": 1
     },
     "line": {
       "type": "integer",
@@ -35,7 +36,8 @@
     },
     "locus": {
       "type": "string",
-      "description": "the named thing: a theorem label, table id, function name, slide title, or claim identifier"
+      "description": "the named thing: a theorem label, table id, function name, slide title, or claim identifier",
+      "minLength": 1
     },
     "lens": {
       "enum": [
@@ -81,22 +83,27 @@
     },
     "rule": {
       "type": "string",
-      "description": "the specific documented rule or standard violated. A finding that cites no rule is an opinion."
+      "description": "the specific documented rule or standard violated. A finding that cites no rule is an opinion.",
+      "minLength": 1
     },
     "claim": {
       "type": "string",
-      "description": "one sentence: what is wrong"
+      "description": "one sentence: what is wrong",
+      "minLength": 1
     },
     "evidence": {
       "type": "string",
-      "description": "what was actually inspected \u2014 a quote, a computed value, a command and its output"
+      "description": "what was actually inspected \u2014 a quote, a computed value, a command and its output",
+      "minLength": 1
     },
     "failing_case": {
       "type": "string",
-      "description": "a concrete configuration under which the claim breaks, or the exact missing hypothesis. Not 'this could be clearer'."
+      "description": "a concrete configuration under which the claim breaks, or the exact missing hypothesis. Not 'this could be clearer'.",
+      "minLength": 1
     },
     "suggested_fix": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     },
     "mechanical": {
       "type": "boolean",

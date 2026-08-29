@@ -126,11 +126,14 @@ def extract_recent_decisions(project_dir: str, limit: int = 3) -> list[str]:
     if not logs_dir.exists():
         return []
 
-    # Skip log-reminder's YYYY-MM-DD_auto.md: it records changed files and
+    # Skip log-reminder's own logs: they record changed files and
     # "X → no fresh .pdf" lines, never decisions, and the "→" pattern below
-    # read those lines as decisions (#189). Decisions come from the newest log
-    # a person (or Claude) wrote.
-    log_files = sorted((f for f in logs_dir.glob("*.md") if not f.name.endswith("_auto.md")),
+    # read those lines as decisions (#189). This fork names them
+    # YYYY-MM-DD_auto_<topic>.md (session-logging.md); upstream's name is
+    # YYYY-MM-DD_auto.md. Both are skipped. Decisions come from the newest
+    # log a person (or Claude) wrote.
+    log_files = sorted((f for f in logs_dir.glob("*.md")
+                        if "_auto_" not in f.name and not f.name.endswith("_auto.md")),
                        key=lambda f: f.stat().st_mtime, reverse=True)
     if not log_files:
         return []
@@ -235,7 +238,11 @@ def append_to_session_log(project_dir: str, trigger: str) -> None:
     if not logs_dir.exists():
         return
 
-    log_files = sorted(logs_dir.glob("*.md"), key=lambda f: f.stat().st_mtime, reverse=True)
+    # Mechanical note -> the `_auto_` namespace ONLY (session-logging.md keeps
+    # the two filename namespaces separate so hooks never append change-set
+    # dumps into prose a human wrote). No auto log yet = nothing to append to;
+    # the restore handoff lives in pre-compact-state.json regardless.
+    log_files = sorted(logs_dir.glob("*_auto_*.md"), key=lambda f: f.stat().st_mtime, reverse=True)
     if not log_files:
         return
 

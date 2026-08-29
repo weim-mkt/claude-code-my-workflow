@@ -41,7 +41,7 @@ Phase 0: Pre-flight → Phase 1: Critic audit → Phase 2: Fixer → Phase 3: Re
 
 ## Phase 1: Initial Audit
 
-Launch the `quarto-critic` agent to compare Beamer vs Quarto comprehensively, passing the slide-qa report path from Phase 0 for the Overflow gate. Report saved to `quality_reports/[Lecture]_qa_critic_round1.md`.
+Launch the `quarto-critic` agent to compare Beamer vs Quarto comprehensively, passing the slide-qa report path from Phase 0 for the Overflow gate. The critic returns its report as its final response (the agent is read-only); this skill saves it to `quality_reports/[Lecture]_qa_critic_round1.md` before launching the fixer, which reads that path.
 
 ## Phase 2: Fix Cycle
 

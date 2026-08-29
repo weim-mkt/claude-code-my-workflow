@@ -61,7 +61,7 @@ Reject at desk if ANY of:
 
 ### Desk-review output
 
-Return this as your final response; the calling skill saves it to `quality_reports/peer_review_[sanitized_paper_name]/desk_review.md`:
+Return this as your final response; the calling skill saves it to `quality_reports/peer_review_[sanitized_paper_name]/desk_review.md` (your `tools:` grant is read-only by design):
 
 ```markdown
 # Desk Review: [Paper Title]
@@ -122,6 +122,7 @@ For each referee, draw **1 critical peeve + 1 constructive peeve** from the pool
 2. **Stratification rule (N ≥ 3):** if no SKEPTIC was drawn after step 1, replace one randomly chosen referee with a SKEPTIC. Rationale: avoids a misleadingly friendly N-referee draw that would understate publication risk.
 3. For each of the N referees, draw 1 critical + 1 constructive peeve (same rule as default).
 4. Record the realized disposition distribution + the stratification override (if any) — this metadata goes into `decision_distribution.md`.
+5. **Hand each referee its index at dispatch** (Referee 1 … Referee N, in the Phase 1b prompt), and have the calling skill save each returned report as `referee_[index]_[domain|methods].md` — the two referee agents hard-code one filename each, so an uninstructed N-referee draw collides on two paths and the synthesis below reads files that were never written.
 
 `--variance` cannot combine with `--stress` (which would force-fix SKEPTIC × 2, defeating sampling) or `--r2`/`--r3` (which reuses prior dispositions). The `/review-paper` skill enforces this — if you receive a Phase 1b call with both flags set, halt and report the conflict.
 
@@ -215,7 +216,7 @@ Return this as your final response; the calling skill saves it to `quality_repor
 
 When invoked with `--variance N`, Phase 3 is replaced with a distribution-aggregation pass instead of the binary point-estimate synthesis above.
 
-After all N referees have submitted reports (`referee_1.md` … `referee_N.md`), do **not** produce `editorial_decision.md`. Instead return **two** documents, clearly delimited, as your final response — the calling skill saves them as:
+After all N referee reports have been saved (`referee_1_domain.md` / `referee_2_methods.md` … — the indexed names assigned at dispatch, step 5 of the variance sampling rule), do **not** produce `editorial_decision.md`. Instead return **two** documents, clearly delimited, as your final response — the calling skill saves them as:
 
 ### `decision_distribution.md`
 

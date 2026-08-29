@@ -109,10 +109,14 @@ dropped before judging and listed as `quote not in source` (`orchestration-schem
 **Smoke-test before spending review effort.** A run that fans out ten reviewers and then cannot
 write a valid report has wasted the whole pass.
 
-The validator enforces what a reviewer must produce: a `rule` it violates (a finding citing no
-documented rule is an opinion), a `failing_case` (not "this could be clearer"), an `id` derived
-from its own coordinates (filled by `--fill-ids`, never supplied), and a `mechanical` flag that is **never** true for an estimand,
-assumption, specification, inference procedure, sample definition, or reporting-language change.
+The validator enforces what a reviewer must produce: a non-blank `rule` it violates (a finding
+citing no documented rule is an opinion), a non-blank `failing_case` (not "this could be
+clearer"), an `id` derived from its own coordinates (filled by `--fill-ids`, never supplied), only
+`confirmed` verdicts once the verification pass has set them, and a `mechanical` flag that is
+**never** true for an estimand, assumption, specification, inference procedure, sample definition,
+or reporting-language change — mechanically, `mechanical: true` is refused for the
+`identification`, `estimation`, `inference`, `measurement`, and `numeric-claim` lenses (the
+change-type judgment for the remaining lenses stays with the researcher at Step 5).
 
 **The verifier pass is refute-biased.** The reviewer proposes; a separate pass tries to *break*
 each finding. Only `verdict: "confirmed"` ships. A finding the verifier cannot ground is

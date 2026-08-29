@@ -157,7 +157,7 @@ Review the entire slide deck holistically. Produce a pedagogical report covering
 
 ## Save Location
 
-Return the report as your final response; the calling skill saves it to `quality_reports/[FILENAME_WITHOUT_EXT]_pedagogy_report.md`.
+Return the report as your final response; the calling skill saves it to `quality_reports/[FILENAME_WITHOUT_EXT]_pedagogy_report.md` (your `tools:` grant is read-only by design).
 
 ## Output contract (machine-readable findings)
 

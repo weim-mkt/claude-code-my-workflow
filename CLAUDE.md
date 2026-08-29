@@ -2,7 +2,7 @@
 
 <!-- HOW TO USE: Replace [BRACKETED PLACEHOLDERS] with your project info.
      Customize Beamer environments and CSS classes for your theme.
-     Keep this file under ~200 lines (official guidance) — Claude loads it every session.
+     Keep this file under ~200 lines (official guidance; gated in check-derived-counts.py) — Claude loads it every session.
      See the guide at docs/workflow-guide.html for full documentation. -->
 
 **Project:** [YOUR PROJECT NAME]
@@ -110,8 +110,9 @@ python3 scripts/quality_score.py Quarto/file.qmd
 # Run this after ANY change. Also runs in pre-commit and CI.
 ./scripts/backtest.sh
 
-# Activate the git pre-commit gate (one-time, per clone)
-./scripts/install-hooks.sh
+# Per-clone setup (one-time): rerere + keep-ours merge driver + pre-commit gate
+# (fork-setup calls install-hooks; run install-hooks.sh alone if you only want the gate)
+./scripts/fork-setup.sh
 ```
 
 **Palette contract:** color names in `Preambles/header.tex` must match SCSS variables in `Quarto/theme-template.scss`. See [`Preambles/README.md`](Preambles/README.md).

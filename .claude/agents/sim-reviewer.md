@@ -94,7 +94,7 @@ You review the **simulation-specific** layer. You do **not** re-audit general R 
 
 ## Report Format
 
-Return this report as your final response; the calling skill saves it to `quality_reports/[script_name]_sim_review.md`:
+Return this report as your final response; the calling skill saves it to `quality_reports/[script_name]_sim_review.md` (your `tools:` grant is read-only by design):
 
 ```markdown
 # Simulation Review: [script_name].R

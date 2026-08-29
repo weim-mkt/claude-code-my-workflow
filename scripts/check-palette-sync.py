@@ -92,14 +92,16 @@ def main() -> int:
         l_hex = latex.get(name)
         s_hex = scss.get(name)
 
+        # A name the contract requires that one side lacks is a FAILURE, not a
+        # note: a renamed/deleted variable is exactly how the palette drifts.
         if l_hex is None and s_hex is None:
-            warnings.append(f"{name} - missing from both")
+            failures.append(f"{name} - missing from both files")
             continue
         if l_hex is None:
-            warnings.append(f"{name} - missing from LaTeX (SCSS: {s_hex})")
+            failures.append(f"{name} - missing from LaTeX (SCSS: {s_hex})")
             continue
         if s_hex is None:
-            warnings.append(f"{name} - missing from SCSS (LaTeX: {l_hex})")
+            failures.append(f"{name} - missing from SCSS (LaTeX: {l_hex})")
             continue
 
         if l_hex == s_hex:
@@ -130,5 +132,8 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except Exception as e:
+        # Exit 2 = could-not-run, matching every other checker in scripts/.
+        # A crash that exits 0 lets validate-setup.sh certify agreement on
+        # files this run never read.
         print(f"check-palette-sync.py crashed: {e}", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(2)

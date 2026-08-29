@@ -151,7 +151,7 @@ Same discipline as domain-referee: if you can't articulate the fix, it's taste, 
 
 ## Report format
 
-Return this as your final response; the calling skill saves it to `quality_reports/peer_review_[paper]/referee_methods.md`:
+Return this as your final response; the calling skill saves it to `quality_reports/peer_review_[paper]/referee_methods.md` — or, when your dispatch prompt carries a referee index (variance mode spawns several instances of this agent), to `referee_[index]_methods.md` so N referees never collide on one filename (your `tools:` grant is read-only by design — reviewers never write files):
 
 ```markdown
 # Methods Referee Report

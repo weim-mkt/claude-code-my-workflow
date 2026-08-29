@@ -47,9 +47,9 @@ paths:
 | Critical | Domain-specific bug | -30 | reviewer |
 | Critical | Hardcoded absolute path | -20 | script |
 | Critical | Missing library() call | -10 | reviewer |
-| Major | Missing set.seed(888) before each randomness step | -10 | script |
+| Major | Missing set.seed() where randomness is used | -10 | script |
 | Major | Missing figure generation | -5 | reviewer |
-| Major | Missing saved .rds of computed results | -5 | reviewer |
+| Major | Missing saved cache (fst/qs2) of computed results | -5 | reviewer |
 | Minor | Style violation | -1 | reviewer |
 | Minor | Missing roxygen documentation | -1 | reviewer |
 
@@ -57,7 +57,7 @@ paths:
 
 | Severity | Issue | Deduction | Caught by |
 |----------|-------|-----------|-----------|
-| Critical | Compilation failure (LaTeX syntax) | -100 (auto-fail) | script |
+| Critical | Compilation failure (XeLaTeX, or LaTeX syntax when unverifiable) | -100 (auto-fail) | script |
 | Critical | Undefined citation | -15 | script |
 | Critical | Overfull hbox (long line or equation in a frame) | -10 | script |
 | Major | Text overflow | -5 | reviewer |

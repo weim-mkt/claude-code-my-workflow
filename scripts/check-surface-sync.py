@@ -187,6 +187,57 @@ SINGULAR_PHRASINGS: list[tuple[str, str]] = [
 TABLE_MARKER_RE = re.compile(r"<!--\s*surface-sync-table:\s*([a-z]+)\s*-->")
 
 
+# Patterns allowed to match ZERO sites. A pattern here is a TRIPWIRE: it
+# gates a phrasing writers have used before (or seeded lies have exploited)
+# so the count is checked if the phrasing ever returns, but its absence today
+# is expected. EVERY other pattern is REQUIRED to match at least one site —
+# an anchored regex that matches nothing reports nothing, which looks exactly
+# like a pass (the fail-open this guard closes; see the docs/index.html
+# bullet comment above). If you deliberately retire a phrasing, move its
+# pattern here (with a note) or delete it — never leave it silently dead.
+TRIPWIRE_PATTERNS: set[str] = {
+    # Landing-page bullet phrasing retired in a redesign; re-gates if it returns.
+    r"(\d+)\s+slash\s+commands?\s*\+\s*(\d+)\s+context-aware\s+rules?",
+    # Seeded-lie scaffolds: "the template has/ships/... N <kind>". The hooks
+    # variant matches live text and is therefore required; these three are
+    # phrasing insurance.
+    r"(?:this\s+)?template\s+(?:has|ships|includes|provides|offers)\s+(\d+)\s+skills?\b",
+    r"(?:this\s+)?template\s+(?:has|ships|includes|provides|offers)\s+(\d+)\s+agents?\b",
+    r"(?:this\s+)?template\s+(?:has|ships|includes|provides|offers)\s+(\d+)\s+rules?\b",
+    # Totalizing "all N skills/hooks": the agents/rules variants match live
+    # text; these two are phrasing insurance.
+    r"\ball\s+(\d+)\s+skills?\b",
+    r"\ball\s+(\d+)\s+hooks?\b",
+}
+
+
+def check_pattern_coverage(texts: list[str]) -> list[str]:
+    """Every non-tripwire pattern must match somewhere across the surfaces.
+
+    A reworded surface takes its claim out of an anchored pattern silently;
+    the scan then checks fewer sites and still prints an all-match summary.
+    This turns that silent shrinkage into a red gate.
+    """
+    problems: list[str] = []
+    all_patterns = [pat for pat, _ in COMPOUND_PHRASINGS] + [
+        pat for pat, _ in SINGULAR_PHRASINGS
+    ]
+    for pat in all_patterns:
+        if pat in TRIPWIRE_PATTERNS:
+            continue
+        if not any(re.search(pat, t) for t in texts):
+            problems.append(
+                f"  pattern matches NO surface (fail-open: its claim is no "
+                f"longer checked): {pat!r}\n"
+                f"    -> if the phrasing was reworded, update the pattern; if "
+                f"retired, move it to TRIPWIRE_PATTERNS with a note"
+            )
+    stale = [p for p in TRIPWIRE_PATTERNS if p not in all_patterns]
+    for p in stale:
+        problems.append(f"  TRIPWIRE_PATTERNS entry matches no known pattern: {p!r}")
+    return problems
+
+
 def _is_table_row(line: str) -> bool:
     return line.lstrip().startswith("|")
 
@@ -289,6 +340,12 @@ def main() -> int:
     per_file: dict[Path, list[tuple[int, str, int, str]]] = {}
     for path in SURFACES:
         per_file[path] = scan_file(path)
+
+    # Fail-open guard: a pattern that matches nothing checks nothing.
+    coverage = check_pattern_coverage(
+        [p.read_text(encoding="utf-8", errors="replace") for p in SURFACES]
+    )
+    drift.extend(coverage)
 
     for path, hits in per_file.items():
         for lineno, kind, asserted, raw in hits:

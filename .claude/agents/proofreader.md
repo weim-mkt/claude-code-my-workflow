@@ -61,7 +61,7 @@ For each issue found, provide:
 
 ## Return the Report
 
-Return the report as your final response; the calling skill saves it to `quality_reports/[FILENAME_WITHOUT_EXT]_report.md`.
+Return the report as your final response; the calling skill saves it to `quality_reports/[FILENAME_WITHOUT_EXT]_report.md` (your `tools:` grant is read-only by design).
 
 For `.qmd` files, append `_qmd` to the name: `quality_reports/[FILENAME]_qmd_report.md`
 

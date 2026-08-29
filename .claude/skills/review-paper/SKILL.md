@@ -79,7 +79,7 @@ Variance mode runs N independent referees (default N=3, max N=5 for token-cost d
 
 **Output files:**
 
-- `quality_reports/peer_review_<paper>/referee_1.md` … `referee_N.md` (per-referee reports)
+- `quality_reports/peer_review_<paper>/referee_1_domain.md`, `referee_2_methods.md`, … (per-referee reports, indexed as the editor names them)
 - `quality_reports/peer_review_<paper>/decision_distribution.md` (aggregate table + concern-frequency analysis)
 - `quality_reports/peer_review_<paper>/editor_synthesis.md` (final editorial letter)
 

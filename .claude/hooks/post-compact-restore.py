@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -55,50 +54,51 @@ def read_pre_compact_state() -> dict | None:
         return None
 
 
+def _log_reminder():
+    """Load log-reminder.py (hyphenated filename, hence importlib) so plan
+    selection has ONE implementation. Four hooks/skills used to answer "which
+    plan is active" four different ways; this hook's whole-file substring +
+    mtime reading labelled DRAFT plans completed and told Claude — at the one
+    moment it has no history — to resume finished work."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "log_reminder", Path(__file__).with_name("log-reminder.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def find_active_plan(project_dir: str) -> dict | None:
-    """Find the most recent non-completed plan (same rule as pre-compact.py)."""
-    plans_dir = Path(project_dir) / "quality_reports" / "plans"
-    if not plans_dir.exists():
+    """The active plan per log-reminder's shared selector: newest by
+    filename-date, Status FIELD parsed (not substring), completed/implemented
+    skipped, stale age labelled."""
+    try:
+        lr = _log_reminder()
+        hit = lr._active_plan(project_dir)
+    except Exception:
         return None
+    if not hit:
+        return None
+    plan, status = hit
+    age_days = (datetime.now().timestamp() - lr._plan_ts(plan)) / 86400
+    if age_days > lr.TOPIC_STALE_DAYS:
+        status = f"{status}, {int(age_days)} days old — likely stale"
 
-    plan_files = sorted(plans_dir.glob("*.md"), key=lambda f: f.stat().st_mtime, reverse=True)
-
-    for plan_file in plan_files[:3]:  # Check last 3 plans
-        try:
-            # UTF-8, explicitly: Windows' default code page raised on a plan
-            # holding a curly quote, which ended the hook with nothing restored.
-            content = plan_file.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            continue
-
-        # Parse the plan's Status FIELD (e.g. "**Status:** DRAFT"), not a
-        # whole-file substring — a DRAFT plan whose body merely mentions
-        # "APPROVED" or "COMPLETED" must not be mis-classified, and a finished
-        # plan must not be restored as the active one. Kept identical to
-        # pre-compact.py's find_active_plan.
-        m = re.search(r"^\s*\**\s*status\s*\**\s*:\s*\**\s*"
-                      r"(draft|approved|completed|implemented|in[ -]?progress)",
-                      content, re.IGNORECASE | re.MULTILINE)
-        v = m.group(1).lower() if m else "in_progress"
-        if v.startswith(("completed", "implemented")):
-            continue  # skip finished plans
-        status = "approved" if v.startswith("approved") else (
-                 "draft" if v.startswith("draft") else "in_progress")
-
-        current_task = None
-        for line in content.split("\n"):
+    current_task = None
+    try:
+        for line in plan.read_text(encoding="utf-8", errors="replace").split("\n"):
             if "- [ ]" in line:  # First unchecked task
                 current_task = line.replace("- [ ]", "").strip()
                 break
+    except Exception:
+        pass
 
-        return {
-            "plan_path": str(plan_file),
-            "plan_name": plan_file.name,
-            "status": status,
-            "current_task": current_task
-        }
-
-    return None
+    return {
+        "plan_path": str(plan),
+        "plan_name": plan.name,
+        "status": status,
+        "current_task": current_task,
+    }
 
 
 def find_recent_session_log(project_dir: str) -> dict | None:

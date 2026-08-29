@@ -101,7 +101,7 @@ else
 fi
 printf '| %s | %s ' "$(date +%F)" "$REV" >> "$LEDGER"          # one printf + one heredoc per specification
 cat >> "$LEDGER" <<'EOF'
-| scripts/R/03_analyze.R:42 | log_wage | `feols(log_wage ~ treat + age \| id + year, cluster = ~id)` | panel 2010-2019 | kept | main specification | 0.082 (0.021) |
+| scripts/R/03-analyze.R:42 | log_wage | `feols(log_wage ~ treat + age \| id + year, cluster = ~id)` | panel 2010-2019 | kept | main specification | 0.082 (0.021) |
 EOF
 ```
 
@@ -193,8 +193,8 @@ set.seed(888)
 
 For regressions, simulations, or bootstrap loops that take more than a couple of minutes, launch via Bash with `run_in_background: true` and then use Anthropic's **Monitor tool** to stream R stdout into the conversation in real time. Pattern:
 
-1. Background-launch with Bash `run_in_background: true`, sending all output to a log: `mkdir -p output && Rscript scripts/R/03_analyze.R > output/03_analyze.log 2>&1`. The background job notifies you by itself when the process exits.
-2. Start Monitor with a command that follows that log and filters for milestones and failures, e.g. `tail -f output/03_analyze.log | grep --line-buffered -E "Coefficients table written|Error|Execution halted"`. Monitor has no job-id parameter: the stdout of its own `command` is the event stream. `tail -f` never exits, so set `timeout_ms` above the expected runtime (or `persistent: true`) and stop the monitor with TaskStop once the job finishes.
+1. Background-launch with Bash `run_in_background: true`, sending all output to a log: `mkdir -p output && Rscript scripts/R/main.R > output/main.log 2>&1` (the numbered stage scripts only define functions — `main.R` is what runs them). The background job notifies you by itself when the process exits.
+2. Start Monitor with a command that follows that log and filters for milestones and failures, e.g. `tail -f output/main.log | grep --line-buffered -E "Coefficients table written|Error|Execution halted"`. Monitor has no job-id parameter: the stdout of its own `command` is the event stream. `tail -f` never exits, so set `timeout_ms` above the expected runtime (or `persistent: true`) and stop the monitor with TaskStop once the job finishes.
 3. Continue or course-correct based on what the stream reveals.
 
 This avoids the polling-loop anti-pattern (`sleep 30; check; sleep 30; check`) and avoids burning cache on idle waits. Especially useful when paired with the [Cost-Conscious Parallelism](https://psantanna.com/claude-code-my-workflow/workflow-guide.html#cost-conscious-parallelism) section of the guide.

@@ -2,7 +2,7 @@
 name: visual-audit
 description: Adversarial visual-layout audit of a Quarto `.qmd` or Beamer `.tex` deck. Flags overflow, font inconsistency, box fatigue, spacing, and alignment issues. Use when user says "visual audit", "check the layout", "does this overflow?", "look for visual issues", "audit the slides", or after reworking a deck's appearance. Does NOT check writing or pedagogy — pair with `/proofread` or `/pedagogy-review`.
 argument-hint: "[QMD or TEX filename]"
-allowed-tools: ["Read", "Grep", "Glob", "Write", "Bash"]
+allowed-tools: ["Read", "Grep", "Glob", "Write", "Bash", "Agent", "Task"]
 disallowed-tools: ["Edit", "MultiEdit"]
 ---
 
@@ -24,7 +24,12 @@ Perform a thorough visual layout audit of a slide deck.
    - A frame whose content runs into the footline often compiles with no warning. To flag it, add `--band-mm FROM TO`: any ink between FROM and TO mm above the bottom edge is reported. The band depends on the theme, so measure it once on a screenshot: pick a strip just above the footline that a correct page leaves empty, and add `--band-x-max PCT` to skip a page number or navigation symbols on the right.
    - If it exits 2 (no PDF, or poppler missing; the script prints the install line), fall back to reading the PDF pages that carry figures or dense content
 
-4. **Audit every slide for:**
+4. **Dispatch the `slide-auditor` agent** (via the `Agent` tool — this is the
+   audit itself; README, `agent-fleet.md`, and `model-routing.md` all route
+   this lens to `slide-auditor` at its pinned tier, and running it inline in
+   the caller's context both burns the wrong tier and skips the agent's
+   checklist). Hand it the file path and rendered output. It audits every
+   slide for:
 
    **OVERFLOW:** Content exceeding slide boundaries
    **FONT CONSISTENCY:** Inline font-size overrides, inconsistent sizes
@@ -32,9 +37,11 @@ Perform a thorough visual layout audit of a slide deck.
    **SPACING:** Missing negative margins, missing fig-align
    **LAYOUT:** Missing transitions, missing framing sentences, semantic colors
 
-5. **Produce a report** organized by slide with severity and recommendations
+5. **Save its report** (the agent returns it inline; its grant is read-only)
+   to `quality_reports/[FILE]_visual_audit.md`, organized by slide with
+   severity and recommendations
 
-6. **Follow the spacing-first principle:**
+6. **Recommendations follow the spacing-first principle:**
    1. Reduce vertical spacing with negative margins
    2. Consolidate lists
    3. Move displayed equations inline
