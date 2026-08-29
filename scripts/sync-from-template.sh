@@ -236,7 +236,11 @@ def run_sync(template: Path, downstream: Path, apply: bool) -> int:
             if not base_f.is_file():
                 base_missing.append(path)
                 continue
-            merges[path] = merge3(base_f.read_bytes(), d_bytes, t_bytes)
+            merged, nconf = merge3(base_f.read_bytes(), d_bytes, t_bytes)
+            if nconf == 0 and merged == d_bytes:
+                in_sync.append(path)  # converged: merge is a no-op
+            else:
+                merges[path] = (merged, nconf)
             continue
 
         if d_bytes is None:
@@ -507,6 +511,13 @@ def selftest(script_repo_root: Path) -> int:
         check("post-resolution re-apply is clean rc=0", r.returncode == 0)
         check("resolution survives re-apply",
               (dwn / ".claude" / "rules" / "conflicted.md").read_text() == "resolved by hand\n")
+
+        # converged steady state: a report run with nothing to do exits 0 and
+        # does NOT relist the merge-mode files as pending work
+        r = subprocess.run(["bash", str(script), str(dwn)], env=env,
+                           capture_output=True, text=True)
+        check("converged report is clean rc=0", r.returncode == 0)
+        check("no-op merges not relisted", "merge    " not in r.stdout)
 
     print(f"selftest: {'ALL PASS' if not failures else f'{len(failures)} FAILURE(S)'}")
     return 0 if not failures else 1
