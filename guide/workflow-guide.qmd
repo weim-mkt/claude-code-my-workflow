@@ -326,7 +326,7 @@ If you prefer to configure things yourself instead of letting Claude handle it:
 # In Claude Code, type:
 /compile-latex MyFirstLecture
 /proofread Slides/MyFirstLecture.tex
-python scripts/quality_score.py Slides/MyFirstLecture.tex
+python3 scripts/quality_score.py Slides/MyFirstLecture.tex
 ```
 :::
 
@@ -931,7 +931,7 @@ argument-hint: "[filename without .tex extension]"
 | `/qa-quarto` | Adversarial Quarto QA | After translating Beamer to Quarto |
 | `/slide-excellence` | Full multi-agent review | Before major milestones |
 | `/create-lecture` | New lecture from scratch | Starting a new topic |
-| `/commit` | Stage, commit, PR, merge | After any completed task |
+| `/commit` | Stage and commit locally (push/PR/merge are separate, explicit asks) | On explicit commit intent |
 
 ::: {.callout-note}
 ## Built-In Skills
@@ -1096,7 +1096,7 @@ Run `/cost` after any `/review-paper --peer` pipeline. If your cache hit-rate is
 ::: {.callout-warning}
 ## Agent SDK credit-pool split — 2026-06-15
 
-Starting 2026-06-15, `claude -p` headless subprocess calls (used by `/coarse-review` and any script that calls Claude Code in `-p` mode) draw from a **separate monthly Agent SDK credit pool**, decoupled from interactive credits. If `/coarse-review` starts failing after the cutover with credit-exhaustion errors even though your interactive session works, the Agent SDK pool is what's empty. See [TROUBLESHOOTING.md](https://github.com/pedrohcgs/claude-code-my-workflow/blob/main/TROUBLESHOOTING.md) for the migration details.
+Starting 2026-06-15, `claude -p` headless subprocess calls (used by `/triage-inbox`, `scripts/run-skill-eval.sh`, and any script that calls Claude Code in `-p` mode) draw from a **separate monthly Agent SDK credit pool**, decoupled from interactive credits. If one of these starts failing after the cutover with credit-exhaustion errors even though your interactive session works, the Agent SDK pool is what's empty. See [TROUBLESHOOTING.md](https://github.com/pedrohcgs/claude-code-my-workflow/blob/main/TROUBLESHOOTING.md) for the migration details.
 :::
 
 ## Settings --- Permissions and Hooks {#settings---permissions-and-hooks}
@@ -1173,7 +1173,7 @@ Plan mode and bypass permissions sound like opposites, but they chain into a sin
 ::: {.callout-warning}
 ## Plan approval is not an enforcement boundary
 
-Approving a plan via `ExitPlanMode` hands the session to the mode set at the approval prompt — current Claude Code versions present explicit choices there (approve into auto mode, approve with manual edit review, keep planning); on this template's bypass-default setup the approved plan proceeds without per-tool prompts. Once there, any subsequent tool call (Edit, Write, Bash) executes under the full allowlist in your `settings.json`, not a scope derived from the plan. A mistaken implementation can still edit unrelated files or run destructive shell commands with no second checkpoint.
+Approving a plan via `ExitPlanMode` hands the session to the mode set at the approval prompt — current Claude Code versions present explicit choices there (approve into auto mode, approve with manual edit review, keep planning); with a bypass default configured (the template ships none — add `defaultMode: bypassPermissions` yourself if you want this) the approved plan proceeds without per-tool prompts. Once there, any subsequent tool call (Edit, Write, Bash) executes under the full allowlist in your `settings.json`, not a scope derived from the plan. A mistaken implementation can still edit unrelated files or run destructive shell commands with no second checkpoint.
 
 Treat this flow as a convenience pattern, not a security control. If you need a hard enforcement boundary, keep `defaultMode: "default"` and approve each high-risk tool individually, or run the whole session in `plan` mode and copy actions out manually.
 :::
@@ -1207,7 +1207,7 @@ Orchestrator executes the plan end-to-end --- no prompts.
 - No mid-session toggling — the approval prompt is the single handoff point (read its options once; they set the post-plan mode).
 - Fits cleanly with the plan-first rule enforced by this repo.
 
-**Prerequisite:** your `defaultMode` must be `bypassPermissions` in at least one CLI layer (typically the project or project-local layer). Without that, exiting plan mode returns you to `default` and you're back to per-tool prompts.
+**Prerequisite:** your `defaultMode` must be `bypassPermissions` in at least one CLI layer (typically the project-local layer, `.claude/settings.local.json` — the shipped project `settings.json` sets **no** `defaultMode`, so this flow needs your own opt-in). Without that, exiting plan mode returns you to the platform default and per-tool prompts for anything outside the allowlist.
 
 ### Session Management {#sec-session-management}
 
@@ -3224,7 +3224,7 @@ This is the `/learn` lifecycle in action: discover a repeating workflow → extr
 
 ## Tips from 6+ Sessions of Iteration
 
-1. **Keep CLAUDE.md under 150 lines.** Claude follows ~150 instructions reliably. A 400-line CLAUDE.md means rules get silently ignored. Use path-scoped rules for detailed standards.
+1. **Keep CLAUDE.md under ~200 lines** (the same figure as the settings section above — the guide used to say 150 in one place and 200 in another). Adherence degrades as the file grows; a 400-line CLAUDE.md means rules get silently ignored. Use path-scoped rules for detailed standards.
 2. **Add rules incrementally.** Don't try to write all rules upfront. Add them when you discover patterns. Use `paths:` frontmatter so they only load when relevant.
 3. **Use the [LEARN] format.** Every correction gets tagged and persisted in MEMORY.md. This prevents repeating mistakes across sessions.
 4. **Trust the adversarial pattern.** The critic-fixer loop catches things you won't. Let it run.
@@ -3297,7 +3297,7 @@ Claude Code supports **plugins** --- bundled collections of skills, agents, hook
 | `/validate-bib` | `.claude/skills/validate-bib/` | Bibliography validation |
 | `/devils-advocate` | `.claude/skills/devils-advocate/` | Design challenge questions |
 | `/create-lecture` | `.claude/skills/create-lecture/` | Full lecture creation |
-| `/commit` | `.claude/skills/commit/` | Stage, commit, PR, and merge |
+| `/commit` | `.claude/skills/commit/` | Stage and commit locally; stops after the commit |
 | `/lit-review` | `.claude/skills/lit-review/` | Literature search and synthesis |
 | `/research-ideation` | `.claude/skills/research-ideation/` | Research questions and strategies |
 | `/interview-me` | `.claude/skills/interview-me/` | Interactive research interview |

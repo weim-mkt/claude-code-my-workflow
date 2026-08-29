@@ -167,7 +167,7 @@ set.seed(888)
 
 For regressions, simulations, or bootstrap loops that take more than a couple of minutes, launch via Bash with `run_in_background: true` and then use Anthropic's **Monitor tool** to stream R stdout into the conversation in real time. Pattern:
 
-1. Background-launch: `Rscript scripts/R/03_analyze.R` with `run_in_background: true`. Capture the `bash_id`.
+1. Background-launch: `Rscript scripts/R/main.R` with `run_in_background: true` (the stage scripts only define functions — `main.R` is what runs). Capture the `bash_id`.
 2. Use Monitor on the `bash_id` until a milestone fires (e.g., `Coefficients table written`, or process exit).
 3. Continue or course-correct based on what the stream reveals.
 

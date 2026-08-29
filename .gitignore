@@ -90,3 +90,15 @@ scripts/R/_outputs/
 # renders them during gating). Published HTML lives in docs/, never here.
 Quarto/*.html
 Quarto/*_files/
+
+# Data (confidential-data.md rule 1 + r-code-conventions layout).
+# Raw and restricted data NEVER enter git; cleaned/ is regenerable pipeline
+# output (00-setup.R mkdirs it on every run). Keep directory skeletons via
+# .gitkeep. Force-add a specific derived, disclosure-cleared file only with
+# a documented reason.
+data/raw/*
+data/restricted/*
+data/cleaned/*
+!data/raw/.gitkeep
+!data/restricted/.gitkeep
+!data/cleaned/.gitkeep

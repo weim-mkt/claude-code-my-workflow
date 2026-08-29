@@ -39,7 +39,7 @@ Default permission mode prompts on every `Bash`, `Edit`, `Write`. Two fixes:
 - **Auto-accept edits** — keybinding in Claude Code; see guide's [permission modes section](https://psantanna.com/claude-code-my-workflow/workflow-guide.html#settings---permissions-and-hooks).
 - **Bypass mode** — `claude --permission-mode acceptEdits` (auto-approves edits but still prompts for sensitive ops) or `claude --permission-mode bypassPermissions` (skips prompts entirely — use only on trusted repos).
 
-The template's `.claude/settings.json` pre-approves ~100 common patterns, so even at default most routine work is unattended.
+The template's `.claude/settings.json` pre-approves five broad patterns (`Edit(**)`, `Bash(*)`, `WebFetch(*)`, `WebSearch`, `Read(**)`), so even at default most routine work is unattended; `Write` (new files) still prompts.
 
 ## Models and API
 
@@ -56,9 +56,9 @@ Migration checklist:
 
 Recommended replacements: `claude-sonnet-4-6` for Sonnet 4, `claude-opus-4-8` for original Opus 4 (the newest Opus, GA 2026-05-28, same $5/$25 pricing as 4.6/4.7). The 1M-context beta for Sonnet 4.5 / Sonnet 4 retired 2026-04-30 — migrate to Sonnet 4.6 for long-context workflows.
 
-### `/coarse-review` and other `claude -p` skills may bill differently after 2026-06-15
+### `claude -p` surfaces may bill differently after 2026-06-15
 
-Starting **2026-06-15**, headless subprocess calls (`claude -p`, Agent SDK) on subscription plans draw from a **separate Agent SDK credit pool**, decoupled from interactive credits. Skills affected in this template: `/coarse-review` (every pipeline stage runs as a `claude -p` subprocess). If `/coarse-review` fails after the cutover with a credit-exhaustion error even though your interactive session works, check the Agent SDK credit balance separately. See [Anthropic's release notes](https://platform.claude.com/docs/en/release-notes/overview) for the current credit allocation per plan tier.
+Starting **2026-06-15**, headless subprocess calls (`claude -p`, Agent SDK) on subscription plans draw from a **separate Agent SDK credit pool**, decoupled from interactive credits. Surfaces affected in this template: `/triage-inbox` (its headless triage pass) and `scripts/run-skill-eval.sh` (each eval case is a `claude -p` subprocess). If one of these fails after the cutover with a credit-exhaustion error even though your interactive session works, check the Agent SDK credit balance separately. *(This entry previously named `/coarse-review`, a skill this template has never shipped.)* See [Anthropic's release notes](https://platform.claude.com/docs/en/release-notes/overview) for the current credit allocation per plan tier.
 
 ## Compilation / rendering
 
@@ -114,7 +114,7 @@ The palette contract broke. Run `./scripts/check-palette-sync.sh` — it reports
 
 ### `sessionInfo.txt` not updated after analysis changes
 
-You ran `03_analyze.R` directly instead of `00_run_all.R`. Re-run `00_run_all.R` (e.g. via the `/data-analysis` skill or your usual pipeline runner) — that entrypoint writes the session snapshot as its last step.
+You sourced a stage script (e.g. `03-analyze.R` — they only *define* functions) instead of running the entry point. Re-run `Rscript scripts/R/main.R` (e.g. via the `/data-analysis` skill or your usual pipeline runner) — that entrypoint writes `scripts/R/_outputs/sessionInfo.txt` as its last step.
 
 ## Permissions / bypass / statusline (v1.6.0 / v1.8.0)
 

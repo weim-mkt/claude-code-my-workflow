@@ -80,7 +80,7 @@ The synthesizer's verdict is a **deterministic function of the typed findings**,
 | **PASS / APPROVED** | `sum(CRITICAL) == 0` across all lenses (and, for gate skills, every hard gate true) |
 | **REVISE** | `sum(CRITICAL) == 0` and `sum(MAJOR) > 0` |
 | **BLOCK / FAIL** | `sum(CRITICAL) > 0` |
-| **converged (loop-until-dry)** | a round produces **0 new** blocker/major findings (deduped by the deterministic `id`) |
+| **converged (loop-until-dry)** | **2 consecutive dry rounds** — a dry round produces **0 new** blocker/major findings (deduped by the deterministic `id`). One dry round from a stochastic reviewer is not convergence; the second consecutive one is |
 
 "New" is measured against the running set of already-seen finding **ids** (`sha1(file:line:locus)` — exact, lens-independent) — so a critic re-flagging an unfixed issue does not count as progress, and a fixer silently re-introducing one does not hide.
 

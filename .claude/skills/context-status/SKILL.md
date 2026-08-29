@@ -35,8 +35,16 @@ cat ~/.claude/sessions/*/context-monitor-cache.json 2>/dev/null | head -20
 
 ### Step 2: Find Active Plan
 
+Use the shared selector (filename-date ordering, Status field parsed, completed
+plans skipped, stale age labelled) — not `ls -lt`, whose mtime ordering a sync
+or checkout scrambles:
+
 ```bash
-ls -lt quality_reports/plans/*.md 2>/dev/null | head -3
+python3 -c "
+import importlib.util
+spec = importlib.util.spec_from_file_location('lr', '.claude/hooks/log-reminder.py')
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+print(m.active_plan('.') or 'no active plan')"
 ```
 
 ### Step 3: Find Session Log

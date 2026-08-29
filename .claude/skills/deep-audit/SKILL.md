@@ -2,6 +2,10 @@
 name: deep-audit
 description: Comprehensive adversarial audit of a theory, proof, math/econ paper, codebase, or set of claims — decompose into components, fan out independent skeptics that must return CONCRETE defects, adjudicate every finding with a separate judge, fix all confirmed defects, then re-verify. Use when correctness must be bulletproof and single-pass or round-by-round review is too slow and too shallow. Invoke for "audit this rigorously", "find ALL the bugs/gaps", "make this rock solid", "converge faster on correctness".
 allowed-tools: ["Read", "Grep", "Glob", "Bash", "Write", "Edit", "Agent", "Task"]
+# Holds Edit+Write and step 5 applies every confirmed fix — a repo-wide fix
+# loop must never launch off a heuristic phrase match (skill-template.md's
+# criterion for this flag; CHANGELOG v2.x already recorded it as set).
+disable-model-invocation: true
 metadata:
   protocol: threat-prioritization
 ---
@@ -29,9 +33,9 @@ Requires the user to have opted into multi-agent orchestration (they asked for a
 
 **3. Adjudicate every finding (independent judge).** A separate judge re-opens each cited location and decides CONFIRMED / REFUTED / DOWNGRADED, skeptical of *both* the artifact and the finding. This kills false positives (misreads, hypotheses that are actually present elsewhere, failing cases that don't arise under the stated conditions) — the step that keeps the fix list honest.
 
-**4. Synthesize.** Dedup by location, rank fatal > major > minor, and hand back one clean defect list. Nothing is accepted as an issue until it survives this.
+**4. Synthesize (reduce typed findings).** Finders and the judge speak the shared FINDING contract ([`orchestration-schemas.md`](../../references/orchestration-schemas.md)): each confirmed finding is emitted as a JSON array entry with `id = sha1(file:line:locus)`, severity in `blocker|major|minor|nit`, and validated with `python3 scripts/validate-findings.py` (smoke-test the harness with `echo '[]' | python3 scripts/validate-findings.py` **before** fanning out). Dedup and join verdicts to findings **by `id`** — the deterministic id is what makes the same defect found twice collapse to one row. Rank blocker > major > minor. Nothing is accepted as an issue until it survives this.
 
-**5. Fix all confirmed, then re-verify.** Apply every confirmed fix (you, in the main loop — fixing needs care and judgment). Then re-audit the touched spots and check that no fix created a new defect. Repeat waves until an audit pass comes back empty. Don't stop after the first wave.
+**5. Fix all confirmed, then re-verify.** Apply every confirmed fix (you, in the main loop — fixing needs care and judgment). Then re-audit the touched spots and check that no fix created a new defect. Repeat waves until **2 consecutive audit passes come back empty** (loop-until-dry, [`orchestrator-protocol.md`](../../rules/orchestrator-protocol.md) — one empty pass from stochastic reviewers is not convergence). Don't stop after the first wave.
 
 ## Failure-mode lenses (adapt to domain)
 Beyond per-component attacks, sweep these cross-cutting modes explicitly — they are where real defects hide:
@@ -53,7 +57,7 @@ Written arguments can read soundly while the object they define is wrong. For **
 
 ## Fix hygiene
 - **New math introduced by fixes is un-audited math**: every fix wave is followed by a verification wave over exactly the fixed spots before anything is declared closed.
-- **In workflow synthesis, match findings to verdicts by INDEX** (require the judge to return verdicts in the findings' order), never by location string — judges paraphrase locations and silent drops follow. Verify the synthesized summary against the journal before acting on it.
+- **In workflow synthesis, join findings to verdicts by `id`** (`sha1(file:line:locus)`, computable by both sides), never by paraphrased location string — judges paraphrase locations and silent drops follow. Where a judge cannot compute ids, fall back to index-matching (verdicts returned in the findings' order) and verify the synthesized summary against the journal before acting on it.
 
 ## Blocked routes are outcomes
 If a component cannot be fixed under the stated assumptions, that is a *finding*, not a failure of the audit: report the exact remaining gap (the precise missing hypothesis or broken step) and the honest options (weaken the claim, add the hypothesis, restrict scope). Do not search for a favorable reading, and do not let an agent paper over a theorem-strength gap as "routine."

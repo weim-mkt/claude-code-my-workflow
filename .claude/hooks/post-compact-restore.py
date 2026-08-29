@@ -54,41 +54,50 @@ def read_pre_compact_state() -> dict | None:
         return None
 
 
+def _log_reminder():
+    """Load log-reminder.py (hyphenated filename, hence importlib) so plan
+    selection has ONE implementation. Four hooks/skills used to answer "which
+    plan is active" four different ways; this hook's whole-file substring +
+    mtime reading labelled DRAFT plans completed and told Claude — at the one
+    moment it has no history — to resume finished work."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "log_reminder", Path(__file__).with_name("log-reminder.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def find_active_plan(project_dir: str) -> dict | None:
-    """Find the most recent plan file and extract its status."""
-    plans_dir = Path(project_dir) / "quality_reports" / "plans"
-    if not plans_dir.exists():
+    """The active plan per log-reminder's shared selector: newest by
+    filename-date, Status FIELD parsed (not substring), completed/implemented
+    skipped, stale age labelled."""
+    try:
+        lr = _log_reminder()
+        hit = lr._active_plan(project_dir)
+    except Exception:
         return None
-
-    # Get most recent plan file
-    plan_files = sorted(plans_dir.glob("*.md"), key=lambda f: f.stat().st_mtime, reverse=True)
-    if not plan_files:
+    if not hit:
         return None
+    plan, status = hit
+    age_days = (datetime.now().timestamp() - lr._plan_ts(plan)) / 86400
+    if age_days > lr.TOPIC_STALE_DAYS:
+        status = f"{status}, {int(age_days)} days old — likely stale"
 
-    latest_plan = plan_files[0]
-    content = latest_plan.read_text()
-
-    # Extract status from plan content
-    status = "unknown"
-    if "COMPLETED" in content.upper():
-        status = "completed"
-    elif "APPROVED" in content.upper():
-        status = "in_progress"
-    elif "DRAFT" in content.upper():
-        status = "draft"
-
-    # Extract current task if present
     current_task = None
-    for line in content.split("\n"):
-        if "- [ ]" in line:  # First unchecked task
-            current_task = line.replace("- [ ]", "").strip()
-            break
+    try:
+        for line in plan.read_text(encoding="utf-8", errors="replace").split("\n"):
+            if "- [ ]" in line:  # First unchecked task
+                current_task = line.replace("- [ ]", "").strip()
+                break
+    except Exception:
+        pass
 
     return {
-        "plan_path": str(latest_plan),
-        "plan_name": latest_plan.name,
+        "plan_path": str(plan),
+        "plan_name": plan.name,
         "status": status,
-        "current_task": current_task
+        "current_task": current_task,
     }
 
 

@@ -32,7 +32,7 @@ Compare numeric claims in a manuscript (point estimates, standard errors, p-valu
 ### Phase 0: Pre-flight
 
 1. Read [`replication-protocol.md`](../../rules/replication-protocol.md) for the tolerance thresholds currently in effect.
-2. Verify the outputs directory exists and is non-empty. If empty or stale (older than the manuscript), prompt the user to re-run their pipeline (e.g., `Rscript scripts/R/00_run_all.R`) before auditing.
+2. Verify the outputs directory exists and is non-empty. If empty or stale (older than the manuscript), prompt the user to re-run their pipeline (e.g., `Rscript scripts/R/main.R`) before auditing.
 3. Ensure a `sessionInfo.txt` or equivalent environment capture exists in the outputs dir.
 
 ### Phase 1: Extract claims from the manuscript
@@ -297,4 +297,4 @@ See [`.claude/rules/replication-protocol.md`](../../rules/replication-protocol.m
 
 ## Long batch reruns: use the Monitor tool (Apr 2026)
 
-When `/audit-reproducibility` is asked to verify *all* numeric claims in a paper, the safest approach is to re-run the full pipeline (`00_run_all.R` or equivalent) and compare the regenerated outputs to the manuscript values. For pipelines that take more than a couple of minutes, background-launch the rerun and use Anthropic's **Monitor tool** (Apr 2026 Week 15) to stream stdout. The audit can react to errors mid-stream rather than waiting for the entire pipeline to finish before noticing a failed step.
+When `/audit-reproducibility` is asked to verify *all* numeric claims in a paper, the safest approach is to re-run the full pipeline (`scripts/R/main.R` or your project's equivalent) and compare the regenerated outputs to the manuscript values. For pipelines that take more than a couple of minutes, background-launch the rerun and use Anthropic's **Monitor tool** (Apr 2026 Week 15) to stream stdout. The audit can react to errors mid-stream rather than waiting for the entire pipeline to finish before noticing a failed step.

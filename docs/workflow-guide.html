@@ -2573,7 +2573,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">August 24, 2026</p>
+      <p class="date-modified">August 29, 2026</p>
     </div>
   </div>
     
@@ -3043,7 +3043,7 @@ You see: &quot;Analysis complete. 3 tables, 4 figures. Score: 85/100.&quot;</cod
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># In Claude Code, type:</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">/compile-latex</span> MyFirstLecture</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">/proofread</span> Slides/MyFirstLecture.tex</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> scripts/quality_score.py Slides/MyFirstLecture.tex</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/quality_score.py Slides/MyFirstLecture.tex</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </div>
@@ -3939,8 +3939,8 @@ APPROVED   NEEDS WORK
 </tr>
 <tr class="odd">
 <td><code>/commit</code></td>
-<td>Stage, commit, PR, merge</td>
-<td>After any completed task</td>
+<td>Stage and commit locally (push/PR/merge are separate, explicit asks)</td>
+<td>On explicit commit intent</td>
 </tr>
 </tbody>
 </table>
@@ -4225,7 +4225,7 @@ APPROVED   NEEDS WORK
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Starting 2026-06-15, <code>claude -p</code> headless subprocess calls (used by <code>/coarse-review</code> and any script that calls Claude Code in <code>-p</code> mode) draw from a <strong>separate monthly Agent SDK credit pool</strong>, decoupled from interactive credits. If <code>/coarse-review</code> starts failing after the cutover with credit-exhaustion errors even though your interactive session works, the Agent SDK pool is what’s empty. See <a href="https://github.com/pedrohcgs/claude-code-my-workflow/blob/main/TROUBLESHOOTING.md">TROUBLESHOOTING.md</a> for the migration details.</p>
+<p>Starting 2026-06-15, <code>claude -p</code> headless subprocess calls (used by <code>/triage-inbox</code>, <code>scripts/run-skill-eval.sh</code>, and any script that calls Claude Code in <code>-p</code> mode) draw from a <strong>separate monthly Agent SDK credit pool</strong>, decoupled from interactive credits. If one of these starts failing after the cutover with credit-exhaustion errors even though your interactive session works, the Agent SDK pool is what’s empty. See <a href="https://github.com/pedrohcgs/claude-code-my-workflow/blob/main/TROUBLESHOOTING.md">TROUBLESHOOTING.md</a> for the migration details.</p>
 </div>
 </div>
 </section>
@@ -4394,7 +4394,7 @@ APPROVED   NEEDS WORK
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Approving a plan via <code>ExitPlanMode</code> hands the session to the mode set at the approval prompt — current Claude Code versions present explicit choices there (approve into auto mode, approve with manual edit review, keep planning); on this template’s bypass-default setup the approved plan proceeds without per-tool prompts. Once there, any subsequent tool call (Edit, Write, Bash) executes under the full allowlist in your <code>settings.json</code>, not a scope derived from the plan. A mistaken implementation can still edit unrelated files or run destructive shell commands with no second checkpoint.</p>
+<p>Approving a plan via <code>ExitPlanMode</code> hands the session to the mode set at the approval prompt — current Claude Code versions present explicit choices there (approve into auto mode, approve with manual edit review, keep planning); with a bypass default configured (the template ships none — add <code>defaultMode: bypassPermissions</code> yourself if you want this) the approved plan proceeds without per-tool prompts. Once there, any subsequent tool call (Edit, Write, Bash) executes under the full allowlist in your <code>settings.json</code>, not a scope derived from the plan. A mistaken implementation can still edit unrelated files or run destructive shell commands with no second checkpoint.</p>
 <p>Treat this flow as a convenience pattern, not a security control. If you need a hard enforcement boundary, keep <code>defaultMode: &quot;default&quot;</code> and approve each high-risk tool individually, or run the whole session in <code>plan</code> mode and copy actions out manually.</p>
 </div>
 </div>
@@ -4423,7 +4423,7 @@ Orchestrator executes the plan end-to-end --- no prompts.</code></pre>
 <li>No mid-session toggling — the approval prompt is the single handoff point (read its options once; they set the post-plan mode).</li>
 <li>Fits cleanly with the plan-first rule enforced by this repo.</li>
 </ul>
-<p><strong>Prerequisite:</strong> your <code>defaultMode</code> must be <code>bypassPermissions</code> in at least one CLI layer (typically the project or project-local layer). Without that, exiting plan mode returns you to <code>default</code> and you’re back to per-tool prompts.</p>
+<p><strong>Prerequisite:</strong> your <code>defaultMode</code> must be <code>bypassPermissions</code> in at least one CLI layer (typically the project-local layer, <code>.claude/settings.local.json</code> — the shipped project <code>settings.json</code> sets <strong>no</strong> <code>defaultMode</code>, so this flow needs your own opt-in). Without that, exiting plan mode returns you to the platform default and per-tool prompts for anything outside the allowlist.</p>
 </section>
 <section id="sec-session-management" class="level3" data-number="4.6.4">
 <h3 data-number="4.6.4" class="anchored" data-anchor-id="sec-session-management"><span class="header-section-number">4.6.4</span> Session Management</h3>
@@ -7215,7 +7215,7 @@ research-spec.md  ─────────────→  preregistration-dr
 <section id="tips-from-6-sessions-of-iteration" class="level2" data-number="7.5">
 <h2 data-number="7.5" class="anchored" data-anchor-id="tips-from-6-sessions-of-iteration"><span class="header-section-number">7.5</span> Tips from 6+ Sessions of Iteration</h2>
 <ol type="1">
-<li><strong>Keep CLAUDE.md under 150 lines.</strong> Claude follows ~150 instructions reliably. A 400-line CLAUDE.md means rules get silently ignored. Use path-scoped rules for detailed standards.</li>
+<li><strong>Keep CLAUDE.md under ~200 lines</strong> (the same figure as the settings section above — the guide used to say 150 in one place and 200 in another). Adherence degrades as the file grows; a 400-line CLAUDE.md means rules get silently ignored. Use path-scoped rules for detailed standards.</li>
 <li><strong>Add rules incrementally.</strong> Don’t try to write all rules upfront. Add them when you discover patterns. Use <code>paths:</code> frontmatter so they only load when relevant.</li>
 <li><strong>Use the [LEARN] format.</strong> Every correction gets tagged and persisted in MEMORY.md. This prevents repeating mistakes across sessions.</li>
 <li><strong>Trust the adversarial pattern.</strong> The critic-fixer loop catches things you won’t. Let it run.</li>
@@ -7488,7 +7488,7 @@ research-spec.md  ─────────────→  preregistration-dr
 <tr class="odd">
 <td><code>/commit</code></td>
 <td><code>.claude/skills/commit/</code></td>
-<td>Stage, commit, PR, and merge</td>
+<td>Stage and commit locally; stops after the commit</td>
 </tr>
 <tr class="even">
 <td><code>/lit-review</code></td>

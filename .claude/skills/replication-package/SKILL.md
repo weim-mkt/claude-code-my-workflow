@@ -29,7 +29,7 @@ Produce the deposit an economist hands a journal at acceptance: a directory tree
 ### Phase 0: Pre-flight — detect language(s) and outputs
 
 1. Detect the analysis language(s) by scanning for `scripts/R/*.R` (+ `renv.lock` / `DESCRIPTION`), `scripts/stata/*.do`, `scripts/python/*.py` (+ `requirements.txt` / `environment.yml` / `pyproject.toml`). A project may be **polyglot** — record all detected languages.
-2. Locate the outputs directory (`$1`) and the one-command entry point (`00_run_all.R`, `99_run_all.do`, `run.py`, `Makefile`). If none exists, flag it — DCAS requires a single master script.
+2. Locate the outputs directory (`$1`) and the one-command entry point (`scripts/R/main.R`, `00_run_all.R`, `99_run_all.do`, `run.py`, `Makefile`). If none exists, flag it — DCAS requires a single master script.
 3. If `quality_reports/passports/<paper-slug>.yaml` exists, load it; its `claims:` entries are the authoritative Table/Figure → `source_file:source_line` map for Phase 1.
 
 ### Phase 1: Generate the standard replication README

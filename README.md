@@ -27,6 +27,10 @@ A ready-to-fork foundation for AI-assisted academic work. You describe what you 
 git clone https://github.com/YOUR_USERNAME/claude-code-my-workflow.git my-project
 cd my-project
 ./scripts/validate-setup.sh        # reports missing tools with install links
+./scripts/fork-setup.sh            # one-time per clone: rerere + the keep-ours
+                                   # merge driver .gitattributes relies on, and
+                                   # the pre-commit gate. Skip it and your first
+                                   # upstream merge hand-merges generated HTML.
 ```
 
 Replace `YOUR_USERNAME` with your GitHub username.
@@ -39,7 +43,7 @@ claude
 
 **Using VS Code?** Open the Claude Code panel instead. Everything works the same — see the [full guide](https://psantanna.com/claude-code-my-workflow/workflow-guide.html#sec-setup) for details.
 
-> **Avoid prompt fatigue.** New interactive sessions on Pro/Max/Team start in **auto mode** (classifier-gated — most actions run, risky ones prompt); on plans and providers without auto, Normal mode prompts per risky tool call. If you still see too many prompts, toggle **Auto-accept edits** mode (a keybinding; see the [permission modes section](https://psantanna.com/claude-code-my-workflow/workflow-guide.html#settings---permissions-and-hooks) of the guide) or run `claude --permission-mode acceptEdits`. For fully-autonomous runs on a trusted repo, **Bypass** mode skips prompts entirely. The template's `.claude/settings.json` ships `defaultMode: bypassPermissions` with broad catch-all allows (`Bash(*)`, `Edit(**)`, `Write(**)` — 7 wildcard rules, not a curated list), so out of the box almost nothing prompts. That is a deliberate power-user default: to tighten it, set `defaultMode: "default"` in `.claude/settings.json` and approve tools as you go, or remove the override to fall back to the platform's auto mode.
+> **Avoid prompt fatigue.** New interactive sessions on Pro/Max/Team start in **auto mode** (classifier-gated — most actions run, risky ones prompt); on plans and providers without auto, Normal mode prompts per risky tool call. If you still see too many prompts, toggle **Auto-accept edits** mode (a keybinding; see the [permission modes section](https://psantanna.com/claude-code-my-workflow/workflow-guide.html#settings---permissions-and-hooks) of the guide) or run `claude --permission-mode acceptEdits`. For fully-autonomous runs on a trusted repo, **Bypass** mode skips prompts entirely. The template's `.claude/settings.json` ships **no `defaultMode`** (the platform default applies — auto mode where available) plus five wildcard allows: `Edit(**)`, `Bash(*)`, `WebFetch(*)`, `WebSearch`, `Read(**)`. Note `Write` is deliberately **not** pre-approved — creating new files prompts, edits to existing ones don't. To tighten, trim the `allow` list; to loosen for fully-autonomous runs, add `"defaultMode": "bypassPermissions"` yourself (eyes open, trusted repos only).
 
 Then paste the [starter prompt](https://psantanna.com/claude-code-my-workflow/workflow-guide.html#sec-first-session) from the guide, filling in your project details:
 
@@ -241,7 +245,7 @@ This workflow is designed as a **single hub for an entire research program** —
 | `/validate-bib` | Cross-reference citations against bibliography |
 | `/devils-advocate` | Challenge design decisions before committing |
 | `/create-lecture` | Full lecture creation workflow |
-| `/commit` | Stage, commit, create PR, and merge to main |
+| `/commit` | Stage and commit locally; push/PR/merge only on explicit request |
 | `/lit-review` | Literature search, synthesis, and gap identification |
 | `/research-ideation` | Generate research questions and empirical strategies |
 | `/interview-me` | Interactive interview to formalize a research idea |

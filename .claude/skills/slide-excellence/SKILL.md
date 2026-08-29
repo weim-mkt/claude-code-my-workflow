@@ -4,6 +4,12 @@ description: Multi-agent comprehensive slide review (visual + pedagogy + proofre
 argument-hint: "[QMD or TEX filename] [--fast] [--skip-substance | --acknowledge-template-domain-reviewer]"
 allowed-tools: ["Read", "Grep", "Glob", "Write", "Bash", "Agent", "Task"]
 context: fork
+# Fork contract: BOTH user decisions this skill needs (template-domain-reviewer
+# disposition, reuse-vs-rerun of existing reports) are resolved in Step 0
+# Pre-Flight BEFORE any forked work starts — a fork cannot ask the user
+# (orchestrator-protocol.md, RUN_CONFIG). If invoked as a fork WITHOUT those
+# answers pre-supplied in the invocation, return immediately with the
+# pre-flight questions as the result instead of guessing.
 ---
 
 # Slide Excellence Review
@@ -114,11 +120,15 @@ stated?") rather than field-specific review. Options:
 What would you like to do?
 ```
 
-Wait for user input. Do NOT silently run domain-reviewer on a template.
+Wait for user input (this decision is collected at Pre-Flight, in the main
+context, before any fork spawns — see the fork contract note in the
+frontmatter). Do NOT silently run domain-reviewer on a template.
 
 ## Step 4: Run Review Agents in Parallel
 
-Spawn only the agents whose conditions hold:
+Spawn only the agents whose conditions hold. Every reviewer's grant is
+read-only: each returns its report inline, and **you** write it to the `Save:`
+path listed below before reducing.
 
 **Always-on for slides (`.tex` or `.qmd`):**
 
@@ -152,7 +162,7 @@ Spawn only the agents whose conditions hold:
   Domain correctness via the 5-lens framework.
   Save: `quality_reports/[FILE]_substance_review.md`.
 
-**De-duplication:** if the user has already run one of these skills on this file in the current session (e.g., ran `/proofread` first, now running `/slide-excellence`), ask whether to reuse the existing report or re-run. Default: reuse (saves tokens).
+**De-duplication:** if the user has already run one of these skills on this file in the current session (e.g., ran `/proofread` first, now running `/slide-excellence`), ask whether to reuse the existing report or re-run — at Pre-Flight, before any fork spawns. Default: reuse (saves tokens).
 
 ## Step 5: Synthesize Combined Summary (reduce typed findings)
 

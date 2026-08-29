@@ -112,3 +112,15 @@ Standard LaTeX checks:
 - **Recommendation:** [specific fix following spacing-first principle]
 - **Format-specific note:** [Quarto or Beamer specific suggestion, if applicable]
 ```
+
+
+## Typed findings (fan-out contract)
+
+When dispatched by a fan-out skill that reduces typed findings (`/seven-pass-review`, `/slide-excellence`, `/qa-quarto`, `/review-paper`, `/deep-audit`), end your response with a fenced ```json block containing a bare ARRAY (not a `{"findings": ...}` wrapper) conforming to `.claude/references/finding-schema.json`:
+
+- `severity`: `blocker` | `major` | `minor` | `nit` — this vocabulary, whatever rating words the prose sections above use.
+- `id`: sha1 of `"<file>:<line>:<locus>"` — lens-independent, so the same defect dedups across rounds and lenses.
+- `rule`: the documented rule violated (a finding citing no rule is an opinion); `failing_case`: the concrete failure, not "could be clearer".
+- `mechanical`: **never** `true` for an estimand, assumption, specification, inference-procedure, sample-definition, or reporting-language change.
+
+The prose report is for the human; the JSON array is what the reducer stacks and `scripts/validate-findings.py` validates — a review that ends without a valid array dies at its final gate. Standalone invocations (a user running this agent directly, outside any fan-out) may omit the block.

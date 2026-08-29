@@ -152,7 +152,7 @@ claims:
       - path: Slides/Lecture04_Results.tex
         locator: "frame 'Main result', highlight box"
         display_precision: 2                      #   coarser → this pair compares at 2
-    source_file: scripts/R/03_analyze.R           # script that produced the value
+    source_file: scripts/R/03-analyze.R           # script that produced the value
     source_line: 147                              # nearest line in the script
     output_file: scripts/R/_outputs/main_model.rds # where the value lives on disk
     output_field: att_overall                      # field within the output (e.g., list element, column)

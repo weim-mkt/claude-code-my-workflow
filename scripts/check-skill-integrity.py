@@ -311,12 +311,25 @@ HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)(?:\s*\{#([^}]+)\})?\s*$", re.MULTILI
 
 
 def anchorize(title: str) -> str:
-    """GitHub-flavored-markdown anchor: lowercase, spaces→dashes, strip
-    most punctuation except dashes and underscores. Accented chars kept."""
+    """GitHub's heading-anchor algorithm — kept IDENTICAL to slug() in
+    check-links.py (the two gates scan overlapping files; two readings of the
+    anchor rule made some spellings unsatisfiable by both at once).
+
+    Critically, GitHub does NOT collapse runs of whitespace: it strips
+    punctuation in place and converts EACH remaining space to a hyphen. So
+    "Phase 1 — Desk review" -> "phase-1--desk-review" (double hyphen), because
+    removing "—" leaves two adjacent spaces. (PR #140; unified 2026-08-29.)
+    Underscores are kept: heading "check_links" -> #check_links.
+    """
     s = title.strip().lower()
-    s = re.sub(r"[^\w\s-]", "", s)
-    s = re.sub(r"\s+", "-", s)
-    return s
+    s = re.sub(r"[`*\[\]()]", "", s)
+    s = re.sub(r"[^\w\s-]", "", s)      # strip punctuation IN PLACE (\w keeps _)
+    return s.replace(" ", "-").strip("-")  # each space -> one hyphen, no collapsing
+
+
+# Regression pin: the em-dash case that exposed the divergence. If this fires,
+# anchorize() and check-links.py's slug() have drifted apart again.
+assert anchorize("Phase 1 — Desk review") == "phase-1--desk-review"
 
 
 def collect_anchors(md: Path) -> set[str]:

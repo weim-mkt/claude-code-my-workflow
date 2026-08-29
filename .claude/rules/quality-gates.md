@@ -15,13 +15,19 @@ paths:
 - **90/100 = PR** -- ready for deployment
 - **95/100 = Excellence** -- aspirational
 
+Rows marked ● are enforced mechanically by `scripts/quality_score.py` (they
+move the score and can block a commit). Unmarked rows are review-agent
+territory — `/visual-audit`, `/qa-quarto`, `/slide-excellence` check them, but
+they do not affect the mechanical score.
+
 ## Quarto Slides (.qmd)
 
 | Severity | Issue | Deduction |
 |----------|-------|-----------|
-| Critical | Compilation failure | -100 |
-| Critical | Equation overflow | -20 |
-| Critical | Broken citation | -15 |
+| Critical | ● Compilation failure | -100 |
+| Critical | ● Equation overflow | -20 |
+| Critical | ● Broken citation | -15 |
+| Critical | ● Missing plotly chart (declared but absent) | -10 |
 | Critical | Typo in equation | -10 |
 | Major | Text overflow | -5 |
 | Major | TikZ label overlap | -5 |
@@ -33,19 +39,19 @@ paths:
 
 | Severity | Issue | Deduction |
 |----------|-------|-----------|
-| Critical | Syntax errors | -100 |
+| Critical | ● Syntax errors | -100 |
 | Critical | Domain-specific bugs | -30 |
-| Critical | Hardcoded absolute paths | -20 |
-| Major | Missing set.seed(888) before randomness | -10 |
+| Critical | ● Hardcoded absolute paths | -20 |
+| Major | ● Missing set.seed before randomness | -10 |
 | Major | Missing figure generation | -5 |
 
 ## Beamer Slides (.tex)
 
 | Severity | Issue | Deduction |
 |----------|-------|-----------|
-| Critical | XeLaTeX compilation failure | -100 |
-| Critical | Undefined citation | -15 |
-| Critical | Overfull hbox > 10pt | -10 |
+| Critical | ● XeLaTeX compilation failure | -100 |
+| Critical | ● Undefined citation | -15 |
+| Critical | ● Overfull hbox risk (line >120 chars in frame) | -10 |
 
 ## Enforcement (the /commit skill + an optional pre-commit hook)
 

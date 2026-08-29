@@ -1,6 +1,6 @@
 ---
 name: review-r
-description: Read-only R code review protocol for `.R` scripts. Checks code quality, reproducibility, domain correctness, tidyverse idioms, and professional standards; produces a report without editing. Use when user says "review this R script", "check the R code", "audit the analysis code", "code review on the R", or when an R file is touched as part of a paper submission. NOT for running the code — pair with `/audit-reproducibility` for numeric verification.
+description: Read-only R code review protocol for `.R` scripts. Checks code quality, reproducibility, domain correctness, the project's R idioms (r-code-conventions.md — data.table, base pipe `|>`, here::here), and professional standards; produces a report without editing. Use when user says "review this R script", "check the R code", "audit the analysis code", "code review on the R", or when an R file is touched as part of a paper submission. NOT for running the code — pair with `/audit-reproducibility` for numeric verification.
 argument-hint: "[filename or 'all' or 'LectureN']"
 allowed-tools: ["Read", "Grep", "Glob", "Write", "Agent", "Task"]
 disallowed-tools: ["Edit", "MultiEdit"]
@@ -20,7 +20,7 @@ Run the comprehensive R code review protocol.
 2. **For each script, launch the `r-reviewer` agent** with instructions to:
    - Follow the full protocol in the agent instructions
    - Read `.claude/rules/r-code-conventions.md` for current standards
-   - Save report to `quality_reports/[script_name]_r_review.md`
+   - The agent returns the report inline (its grant is read-only); **you** save it to `quality_reports/[script_name]_r_review.md`
 
 3. **After all reviews complete**, present a summary:
    - Total issues found per script

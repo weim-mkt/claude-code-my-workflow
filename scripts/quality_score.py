@@ -17,6 +17,7 @@ import sys
 import os
 import argparse
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import re
@@ -59,59 +60,12 @@ RAW_STRING_OPEN = re.compile(r"""[rR](['"])(-*)([\[({])""")
 # SCORING RUBRIC (from .claude/rules/quality-gates.md)
 # ==============================================================================
 
-QUARTO_RUBRIC = {
-    'critical': {
-        'compilation_failure': {'points': 100, 'auto_fail': True},
-        'equation_overflow': {'points': 20},
-        'broken_citation': {'points': 15},
-        'typo_in_equation': {'points': 10},
-        'missing_plotly_chart': {'points': 10},
-    },
-    'major': {
-        'text_overflow': {'points': 5},
-        'tikz_label_overlap': {'points': 5},
-        'notation_inconsistency': {'points': 3},
-        'missing_box_separation': {'points': 2},
-        'color_contrast_low': {'points': 3},
-    },
-    'minor': {
-        'font_size_reduction': {'points': 1},
-        'missing_forward_ref': {'points': 1},
-        'missing_framing_sentence': {'points': 1},
-    }
-}
-
-R_SCRIPT_RUBRIC = {
-    'critical': {
-        'syntax_error': {'points': 100, 'auto_fail': True},
-        'hardcoded_path': {'points': 20},
-        'missing_library': {'points': 10},
-    },
-    'major': {
-        'missing_set_seed': {'points': 10},
-        'missing_figure': {'points': 5},
-        'missing_cache': {'points': 5},
-    },
-    'minor': {
-        'style_violation': {'points': 1},
-        'missing_roxygen': {'points': 1},
-    }
-}
-
-BEAMER_RUBRIC = {
-    'critical': {
-        'compilation_failure': {'points': 100, 'auto_fail': True},
-        'undefined_citation': {'points': 15},
-        'overfull_hbox': {'points': 10},
-    },
-    'major': {
-        'text_overflow': {'points': 5},
-        'notation_inconsistency': {'points': 3},
-    },
-    'minor': {
-        'font_size_reduction': {'points': 1},
-    }
-}
+# NOTE: deduction points are defined INLINE in the score_* methods below —
+# they are the single implementation. (Three *_RUBRIC dicts used to sit here
+# declaring 27 criteria while the scorers implemented 11; nothing ever read
+# them, so removed 2026-08-29. The reader-facing rubric lives in
+# .claude/rules/quality-gates.md, whose tables mark which rows this script
+# enforces mechanically and which belong to the review agents.)
 
 THRESHOLDS = {
     'commit': 80,
@@ -148,6 +102,47 @@ class IssueDetector:
             return None, f"compilation not verified — render exceeded {limit}s (raise QUALITY_QUARTO_TIMEOUT for large decks)"
         except FileNotFoundError:
             return None, "compilation not verified — Quarto not installed"
+
+    @staticmethod
+    def check_beamer_compilation(filepath: Path) -> Tuple[Optional[bool], str]:
+        """Compile the Beamer deck with XeLaTeX. Returns True (ok), False (real
+        failure), or None (could-not-verify: no \\documentclass, timed out, or
+        tool missing — NOT a quality failure).
+
+        One -halt-on-error pass decides compiles/does-not-compile. Undefined
+        references and citations settle on later passes and are scored
+        separately, so the extra two passes buy nothing here. Output is written
+        to a temp directory, never beside the source.
+        """
+        content = filepath.read_text(encoding='utf-8', errors='replace')
+        if '\\documentclass' not in content:
+            return None, "compilation not verified — no \\documentclass (fragment, not a standalone deck)"
+
+        limit = _timeout("QUALITY_XELATEX_TIMEOUT", 120)
+        # Mirror the project's documented invocation: preambles live one level
+        # up from Slides/. A trailing ':' keeps TeX's default search path.
+        env = dict(os.environ)
+        preambles = filepath.parent.parent / 'Preambles'
+        if preambles.is_dir():
+            env['TEXINPUTS'] = f"{preambles}:{env.get('TEXINPUTS', '')}"
+        try:
+            with tempfile.TemporaryDirectory() as outdir:
+                result = subprocess.run(
+                    ['xelatex', '-interaction=nonstopmode', '-halt-on-error',
+                     '-output-directory', outdir, filepath.name],
+                    capture_output=True, text=True, timeout=limit,
+                    cwd=filepath.parent, env=env
+                )
+                if result.returncode != 0:
+                    # TeX reports errors on stdout, not stderr.
+                    errors = [ln for ln in result.stdout.splitlines()
+                              if ln.startswith('!')]
+                    return False, "\n".join(errors) or result.stdout[-400:].strip()
+                return True, ""
+        except subprocess.TimeoutExpired:
+            return None, f"compilation not verified — xelatex exceeded {limit}s (raise QUALITY_XELATEX_TIMEOUT for large decks)"
+        except FileNotFoundError:
+            return None, "compilation not verified — XeLaTeX not installed"
 
     @staticmethod
     def check_equation_overflow(content: str) -> List[int]:
@@ -604,20 +599,36 @@ class QualityScorer:
         """Score Beamer/LaTeX lecture slides."""
         content = self.filepath.read_text(encoding='utf-8')
 
-        # Check for LaTeX syntax issues (without compiling)
-        syntax_issues = IssueDetector.check_latex_syntax(content)
-        if syntax_issues:
-            # Mismatched environments are treated as compilation risk
-            for issue in syntax_issues:
-                self.issues['critical'].append({
-                    'type': 'compilation_failure',
-                    'description': f'LaTeX syntax issue at line {issue["line"]}',
-                    'details': issue['description'],
-                    'points': 100
-                })
+        # Check compilation. None = could-not-verify (fragment / timeout / tool
+        # missing): record a note and fall back to the static syntax heuristic
+        # rather than scoring 0.
+        compiles, error = IssueDetector.check_beamer_compilation(self.filepath)
+        if compiles is False:
             self.auto_fail = True
+            self.issues['critical'].append({
+                'type': 'compilation_failure',
+                'description': 'XeLaTeX compilation failed',
+                'details': error[:200],
+                'points': 100
+            })
             self.score = 0
             return self._generate_report()
+        if compiles is None:
+            self.unverified.append(error)
+            # The compiler could not answer, so the heuristic is all we have.
+            syntax_issues = IssueDetector.check_latex_syntax(content)
+            if syntax_issues:
+                # Mismatched environments are treated as compilation risk
+                for issue in syntax_issues:
+                    self.issues['critical'].append({
+                        'type': 'compilation_failure',
+                        'description': f'LaTeX syntax issue at line {issue["line"]}',
+                        'details': issue['description'],
+                        'points': 100
+                    })
+                self.auto_fail = True
+                self.score = 0
+                return self._generate_report()
 
         # Check for undefined/broken citations (\cite, \citep, \citet patterns)
         bib_file = self.filepath.parent.parent / 'Bibliography_base.bib'
@@ -842,14 +853,23 @@ Exit Codes:
         try:
             scorer = QualityScorer(filepath, verbose=args.verbose)
 
-            if filepath.suffix == '.qmd':
+            suffix = filepath.suffix.lower()
+            if suffix == '.qmd':
                 report = scorer.score_quarto()
-            elif filepath.suffix == '.R':
+            elif suffix == '.r':
                 report = scorer.score_r_script()
-            elif filepath.suffix == '.tex':
+            elif suffix == '.tex':
                 report = scorer.score_beamer()
             else:
-                print(f"Error: Unsupported file type: {filepath.suffix}")
+                # A file we were asked to score but cannot score is a gate
+                # FAILURE, not a pass. The pre-commit hook selects staged
+                # files case-insensitively and reads only our exit code, so
+                # the old silent `continue` let any unscorable file through
+                # the quality gate with rc=0. stderr, not stdout: --json
+                # prints the results array to stdout.
+                print(f"Error: Unsupported file type: {filepath.suffix}",
+                      file=sys.stderr)
+                exit_code = max(exit_code, 1)
                 continue
 
             results.append(report)

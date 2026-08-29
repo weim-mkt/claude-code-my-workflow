@@ -99,7 +99,11 @@ def extract_recent_decisions(project_dir: str, limit: int = 3) -> list[str]:
     if not logs_dir.exists():
         return []
 
-    log_files = sorted(logs_dir.glob("*.md"), key=lambda f: f.stat().st_mtime, reverse=True)
+    # The `_auto_` namespace is machine output (session-logging.md): mining it
+    # yields "decisions" like "no fresh .pdf". Decisions live in the
+    # human-written narrative logs only.
+    log_files = sorted((f for f in logs_dir.glob("*.md") if "_auto_" not in f.name),
+                       key=lambda f: f.stat().st_mtime, reverse=True)
     if not log_files:
         return []
 
@@ -207,7 +211,11 @@ def append_to_session_log(project_dir: str, trigger: str) -> None:
     if not logs_dir.exists():
         return
 
-    log_files = sorted(logs_dir.glob("*.md"), key=lambda f: f.stat().st_mtime, reverse=True)
+    # Mechanical note -> the `_auto_` namespace ONLY (session-logging.md keeps
+    # the two filename namespaces separate so hooks never append change-set
+    # dumps into prose a human wrote). No auto log yet = nothing to append to;
+    # the restore handoff lives in pre-compact-state.json regardless.
+    log_files = sorted(logs_dir.glob("*_auto_*.md"), key=lambda f: f.stat().st_mtime, reverse=True)
     if not log_files:
         return
 

@@ -9,7 +9,10 @@
 #
 set -euo pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+# Root from $0, not from the caller's cwd: `git rev-parse` resolves whatever
+# repository the CALLER happens to stand in, which silently installs hooks
+# into the wrong repo when invoked from elsewhere.
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT"
 
 if [ ! -d .githooks ]; then

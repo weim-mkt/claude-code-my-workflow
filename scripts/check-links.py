@@ -42,6 +42,10 @@ def slug(h):
     s = re.sub(r'[^\w\s-]', '', s)      # strip punctuation IN PLACE (\w keeps _)
     return s.replace(' ', '-').strip('-')  # each space -> one hyphen, no collapsing
 
+# Regression pin, mirrored in check-skill-integrity.py's anchorize(): the two
+# gates must implement ONE anchor rule.
+assert slug("Phase 1 — Desk review") == "phase-1--desk-review"
+
 anchors = {}
 def anchors_for(path):
     if path in anchors: return anchors[path]

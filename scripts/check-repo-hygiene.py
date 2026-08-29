@@ -28,6 +28,10 @@ ROOT_ALLOW_DIRS = {
     ".claude", ".git", ".github", ".githooks", ".vscode", "Figures", "Preambles",
     "Quarto", "Slides", "docs", "explorations", "guide", "master_supporting_docs",
     "quality_reports", "scripts", "templates",
+    # Prescribed by r-code-conventions.md and created by scripts/R/00-setup.R.
+    # Its raw/restricted/cleaned subtrees are gitignored (confidential-data.md
+    # rule 1); only .gitkeep skeletons and documented derived files are tracked.
+    "data",
 }
 
 # Names that mean "I was experimenting". These must not live in tracked source.

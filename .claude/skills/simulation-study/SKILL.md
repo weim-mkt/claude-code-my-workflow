@@ -126,7 +126,8 @@ Use `ggplot2` with the project theme: bias / coverage vs. sample size (or scenar
 # ============================================================
 
 # 0. Setup ----
-library(tidyverse)
+library(tidyverse)    # this worked example uses dplyr verbs for brevity; the project
+                      # convention is data.table + base pipe (r-code-conventions.md)
 library(furrr)            # parallel reps (optional)
 plan(multisession)        # enable parallel workers; omit this line to run sequentially
 RNGkind("L'Ecuyer-CMRG")

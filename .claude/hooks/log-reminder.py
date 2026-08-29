@@ -61,15 +61,19 @@ def get_state_dir() -> Path:
     return d
 
 
-def _git(project_dir: str, *args: str) -> str:
+def _git(project_dir: str, *args: str) -> str | None:
+    """None = git did NOT answer (missing binary, non-zero exit, timeout).
+    A real empty string is a real answer — e.g. a genuinely clean tree.
+    Collapsing the two made a slow or broken git read as "clean", and a
+    dirty session ended with no log written."""
     try:
         out = subprocess.run(
             ["git", "-C", project_dir, *args],
             capture_output=True, text=True, timeout=5,
         )
-        return out.stdout if out.returncode == 0 else ""
+        return out.stdout if out.returncode == 0 else None
     except Exception:
-        return ""
+        return None
 
 
 def _slugify(text: str) -> str:
@@ -94,9 +98,9 @@ def branch_slug(project_dir: str) -> str:
     describes that tree. Git refuses to check one branch out in two worktrees,
     which is what makes this the collision-free part of the filename.
     """
-    ref = _git(project_dir, "rev-parse", "--abbrev-ref", "HEAD").strip()
-    if ref in ("", "HEAD"):  # detached HEAD (or git unavailable) — fall back to the sha
-        sha = _git(project_dir, "rev-parse", "--short", "HEAD").strip()
+    ref = (_git(project_dir, "rev-parse", "--abbrev-ref", "HEAD") or "").strip()
+    if ref in ("", "HEAD"):  # detached HEAD (or git unanswered) — fall back to the sha
+        sha = (_git(project_dir, "rev-parse", "--short", "HEAD") or "").strip()
         ref = f"detached-{sha}" if sha else "nogit"
     return _slugify(ref) or "nogit"
 
@@ -130,6 +134,8 @@ def worktree_count(project_dir: str) -> int:
     """How many worktrees this repo has. Both the main checkout and a linked
     worktree report the same number, so every tree reaches the same decision."""
     out = _git(project_dir, "worktree", "list", "--porcelain")
+    if out is None:
+        return 1  # unanswered — assume single tree (affects only the filename)
     return sum(1 for ln in out.splitlines() if ln.startswith("worktree ")) or 1
 
 
@@ -187,7 +193,7 @@ def _active_plan(project_dir: str) -> tuple[Path, str] | None:
         files = sorted(plans.glob("*.md"), key=_plan_ts, reverse=True)
     except Exception:
         return None
-    for p in files[:3]:
+    for p in files:
         try:
             text = p.read_text(encoding="utf-8", errors="replace")
         except Exception:
@@ -211,8 +217,16 @@ def _active_plan_file(project_dir: str) -> Path | None:
 
 
 def active_plan(project_dir: str) -> str | None:
+    """The `Active plan:` line. A stale plan is REPORTED but LABELLED — the
+    filename-topic side (topic_slug) drops it entirely, and an unlabelled
+    90-day-old plan presented as current reads as fact."""
     hit = _active_plan(project_dir)
-    return f"{hit[0].name} ({hit[1]})" if hit else None
+    if not hit:
+        return None
+    age_days = (datetime.now().timestamp() - _plan_ts(hit[0])) / 86400
+    if age_days > TOPIC_STALE_DAYS:
+        return f"{hit[0].name} ({hit[1]}, {int(age_days)} days old — likely stale)"
+    return f"{hit[0].name} ({hit[1]})"
 
 
 def uncompiled(project_dir: str) -> list[str]:
@@ -247,8 +261,10 @@ def main() -> int:
         return 0
 
     status = _git(project_dir, "status", "--porcelain")
+    if status is None:
+        return 0  # git did not ANSWER — unknown tree; do not claim "clean"
     if not status.strip():
-        return 0  # nothing changed — nothing to log
+        return 0  # answered: genuinely clean — nothing to log
 
     branch = branch_slug(project_dir)
     today = datetime.now().strftime("%Y-%m-%d")

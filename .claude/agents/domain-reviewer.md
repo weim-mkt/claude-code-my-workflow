@@ -145,7 +145,7 @@ Check the target lecture against the knowledge base:
 
 ## Report Format
 
-Save report to `quality_reports/[FILENAME_WITHOUT_EXT]_substance_review.md`:
+Return the report as your final response; the calling skill saves it to `quality_reports/[FILENAME_WITHOUT_EXT]_substance_review.md` (your `tools:` grant is read-only by design):
 
 ```markdown
 # Substance Review: [Filename]
@@ -201,3 +201,15 @@ Save report to `quality_reports/[FILENAME_WITHOUT_EXT]_substance_review.md`:
 5. **Check your own work.** Before flagging an "error," verify your correction is correct.
 6. **Respect the instructor.** Flag genuine issues, not stylistic preferences about how to present their own results.
 7. **Read the knowledge base.** Check notation conventions before flagging "inconsistencies."
+
+
+## Typed findings (fan-out contract)
+
+When dispatched by a fan-out skill that reduces typed findings (`/seven-pass-review`, `/slide-excellence`, `/qa-quarto`, `/review-paper`, `/deep-audit`), end your response with a fenced ```json block containing a bare ARRAY (not a `{"findings": ...}` wrapper) conforming to `.claude/references/finding-schema.json`:
+
+- `severity`: `blocker` | `major` | `minor` | `nit` — this vocabulary, whatever rating words the prose sections above use.
+- `id`: sha1 of `"<file>:<line>:<locus>"` — lens-independent, so the same defect dedups across rounds and lenses.
+- `rule`: the documented rule violated (a finding citing no rule is an opinion); `failing_case`: the concrete failure, not "could be clearer".
+- `mechanical`: **never** `true` for an estimand, assumption, specification, inference-procedure, sample-definition, or reporting-language change.
+
+The prose report is for the human; the JSON array is what the reducer stacks and `scripts/validate-findings.py` validates — a review that ends without a valid array dies at its final gate. Standalone invocations (a user running this agent directly, outside any fan-out) may omit the block.

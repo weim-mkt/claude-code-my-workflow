@@ -55,7 +55,7 @@ Read-only collection. Skip any source that doesn't apply (R-only, Stata-only, no
 
 Use the template below. Keep it tight (~1–2 screens). Concrete `path:line` pointers beat prose.
 
-**Label every status statement `measured` or `inferred`.** *Measured* means a command was run and what you are reporting is its output — **name the command**. *Inferred* means you believe it from reading the code, the diff, or a run from some earlier day. Both belong in a brief; mixing them silently does not, because the reader cannot tell which claims they can build on without re-checking. Write `replication-ready (measured: Rscript scripts/R/00_run_all.R — 0 FAIL)`, not `replication-ready`.
+**Label every status statement `measured` or `inferred`.** *Measured* means a command was run and what you are reporting is its output — **name the command**. *Inferred* means you believe it from reading the code, the diff, or a run from some earlier day. Both belong in a brief; mixing them silently does not, because the reader cannot tell which claims they can build on without re-checking. Write `replication-ready (measured: Rscript scripts/R/main.R — 0 FAIL)`, not `replication-ready`.
 
 **Disposition delegated work item by item.** Anything handed to a co-author, an RA, or an agent gets its own line and its own state — done (with the evidence) / in progress / blocked (on what) / not started. *"Mostly done"* is not a disposition: it hands the reader the job of finding the missing piece, which is precisely the job the brief exists to do.
 
@@ -71,7 +71,7 @@ branch: [current branch]
 
 ## What changed since [since-point]
 [3–8 bullets, grouped by area. Each: what changed + why it matters to a reader, not raw commit subjects.]
-- **Analysis:** re-ran the main specification on the de-duplicated sample (533 fanned-out rows dropped); headline estimate now −1.19 — see `scripts/R/03_analyze.R:147`.
+- **Analysis:** re-ran the main specification on the de-duplicated sample (533 fanned-out rows dropped); headline estimate now −1.19 — see `scripts/R/03-analyze.R:147`.
 - **Manuscript:** Table 2 + §4.2 rewritten to match; Figure 3 regenerated.
 - **Slides:** untouched.
 
@@ -79,7 +79,7 @@ branch: [current branch]
 | Artifact | Path | State | Evidence (measured / inferred) |
 |---|---|---|---|
 | Manuscript | `manuscript.tex` | drafting §5 | inferred — §5 read, not compiled since the Table 2 rewrite |
-| Analysis | `scripts/R/` | replication-ready | measured: `Rscript scripts/R/00_run_all.R`, passport 11 PASS / 1 EXPLAINED / 0 FAIL |
+| Analysis | `scripts/R/` | replication-ready | measured: `Rscript scripts/R/main.R`, passport 11 PASS / 1 EXPLAINED / 0 FAIL |
 | Slides | `Slides/` | current | measured: `git log --since=<point> -- Slides/` returns nothing |
 
 ## Delegated work — one line per item
@@ -95,7 +95,7 @@ branch: [current branch]
 ## Reproduce locally
 1. Clone + branch: `git checkout <branch>`
 2. Restore environment: `Rscript -e 'renv::restore()'` (or `pip install -r requirements.txt` / Stata `do _setup.do`).
-3. Run the pipeline: `Rscript scripts/R/00_run_all.R` (or `00_master.do` / `make all`).
+3. Run the pipeline: `Rscript scripts/R/main.R` (or `00_master.do` / `make all`).
 4. Verify: `/audit-reproducibility manuscript.tex` should report 0 FAIL.
 
 ## Restricted-data access (if applicable)

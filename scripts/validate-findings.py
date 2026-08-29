@@ -48,6 +48,27 @@ def validate(data, schema):
                 errs.append(f"{w}.{k}: {v!r} does not match {spec['pattern']}")
             if "minimum" in spec and isinstance(v, int) and not isinstance(v, bool) and v < spec["minimum"]:
                 errs.append(f"{w}.{k}: below minimum {spec['minimum']}")
+            if "minLength" in spec and isinstance(v, str) and len(v.strip()) < spec["minLength"]:
+                errs.append(f"{w}.{k}: empty/blank (minLength {spec['minLength']}) — "
+                            "an evidence-free finding is an opinion, not a finding")
+        # `mechanical: true` is auto-applied by Step 5 of the runtime, so it
+        # must NEVER mark an estimand/assumption/specification/inference/
+        # sample/reporting-language change (orchestrator-protocol.md §5).
+        # These lenses are exactly that territory; a mechanical finding there
+        # goes back to the researcher, not into an auto-fix.
+        NEVER_MECHANICAL_LENSES = {"identification", "estimation", "inference",
+                                   "measurement", "numeric-claim"}
+        if f.get("mechanical") is True and f.get("lens") in NEVER_MECHANICAL_LENSES:
+            errs.append(f"{w}.mechanical: true is not allowed for lens "
+                        f"{f.get('lens')!r} — this class of change returns to "
+                        "the researcher (never auto-applied)")
+        # A report is the CONFIRMED set: the refute-biased verifier drops what
+        # it cannot ground, so a shipped finding carrying any other verdict is
+        # a pipeline error, not information.
+        if "verdict" in f and f.get("verdict") != "confirmed":
+            errs.append(f"{w}.verdict: {f.get('verdict')!r} must not ship — "
+                        "only 'confirmed' findings enter a report (drop or "
+                        "omit the field)")
         # id must be reproducible from its own coordinates. Guard on type:
         # a non-string id already failed the type check above, and slicing or
         # hashing it here would crash the validator instead of reporting

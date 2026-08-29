@@ -39,7 +39,7 @@ Phase 0: Pre-flight → Phase 1: Critic audit → Phase 2: Fixer → Phase 3: Re
 
 ## Phase 1: Initial Audit
 
-Launch the `quarto-critic` agent to compare Beamer vs Quarto comprehensively. Report saved to `quality_reports/[Lecture]_qa_critic_round1.md`.
+Launch the `quarto-critic` agent to compare Beamer vs Quarto comprehensively. The critic returns its report inline (its grant is read-only); **you** save it to `quality_reports/[Lecture]_qa_critic_round1.md` before launching the fixer, which reads that path.
 
 ## Phase 2: Fix Cycle
 
@@ -51,7 +51,7 @@ Re-launch critic to verify fixes. Loop back to Phase 2 if needed.
 
 ## Iteration Limits — loop-until-dry
 
-This is the **loop-until-dry** primitive from [`orchestrator-protocol.md`](../../rules/orchestrator-protocol.md): the critic returns `FINDING`s (the hard-gate table is the CRITICAL roll-up, per [`orchestration-schemas.md`](../../references/orchestration-schemas.md)); the loop **converges when a round adds 0 new CRITICAL/MAJOR** findings (deduped on `id = sha1(file:line:locus)`), not at a fixed round count.
+This is the **loop-until-dry** primitive from [`orchestrator-protocol.md`](../../rules/orchestrator-protocol.md): the critic returns `FINDING`s (the hard-gate table is the CRITICAL roll-up, per [`orchestration-schemas.md`](../../references/orchestration-schemas.md)); the loop **converges after 2 consecutive dry rounds** (a dry round adds 0 new CRITICAL/MAJOR findings, deduped on `id = sha1(file:line:locus)`), not at a fixed round count — one dry round from a stochastic critic is not convergence.
 
 - **Fallback cap:** 5 rounds bounds a non-converging loop, then escalate to the user with remaining issues.
 - **Two-strikes:** the same gate failing in rounds N and N+2 is flagged for the user, not patched again ([`summary-parity.md`](../../rules/summary-parity.md)).

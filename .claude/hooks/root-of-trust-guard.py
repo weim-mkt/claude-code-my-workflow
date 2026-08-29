@@ -212,11 +212,11 @@ another name, it truncated `.claude/settings.json` in a throwaway fixture while
 the tokenizer split it into `>` plus the SEPARATOR `&`, and the backstop's
 target class excludes `&`. Descriptor duplication (`>&2`, `1>&2`, `2>&1`, `>&-`)
 is excluded from it and stays allowed. ORDINARY QUOTING PLACED INSIDE THE
-PROTECTED NAME joined the caught set at r20 — `.clau\de/…`, `.cl'aud'e/…`,
-`.cl"aud"e/…`, `.githook\s/…`, and the same split across a line continuation.
+PROTECTED NAME joined the caught set at r20 — `.clau\\de/…`, `.cl'aud'e/…`,
+`.cl"aud"e/…`, `.githook\\s/…`, and the same split across a line continuation.
 The scan half always read these correctly; what silenced them was the literal
 substring test in front of it, for the third time (`_may_name_a_protected_path`
-has the measurements). The trigger is now taken on the line with `\`, `'` and
+has the measurements). The trigger is now taken on the line with `\\`, `'` and
 `"` deleted as well as as written — those three are the whole set of QUOTING
 characters that can sit inside a word without changing which file it names (a
 variable or a substitution can too, and both are disclosed as residual below) —

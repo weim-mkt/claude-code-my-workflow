@@ -47,7 +47,7 @@ Skill invoked (with a RUN_CONFIG)
   │
   Step 6: SCORE — quality_score.py / hard-gate roll-up
   │
-  └── converged?  (a round adds 0 new CRITICAL/MAJOR — see loop-until-dry)
+  └── converged?  (2 CONSECUTIVE dry rounds — see loop-until-dry)
         YES → present summary
         NO  → back to Step 3, in FRESH context
               (hard fallback cap reached → present with remaining issues)
@@ -93,10 +93,13 @@ python3 scripts/validate-findings.py <report>.json        # exit 0 = valid
 **Smoke-test before spending review effort.** A run that fans out ten reviewers and then cannot
 write a valid report has wasted the whole pass.
 
-The validator enforces what a reviewer must produce: a `rule` it violates (a finding citing no
-documented rule is an opinion), a `failing_case` (not "this could be clearer"), an `id` derived
-from its own coordinates, and a `mechanical` flag that is **never** true for an estimand,
-assumption, specification, inference procedure, sample definition, or reporting-language change.
+The validator enforces what a reviewer must produce: a non-blank `rule` it violates (a finding
+citing no documented rule is an opinion), a non-blank `failing_case` (not "this could be
+clearer"), an `id` derived from its own coordinates, only `confirmed` verdicts shipped, and a
+`mechanical` flag that is **never** true for the estimand/assumption/specification territory —
+mechanically, `mechanical: true` is refused for the `identification`, `estimation`, `inference`,
+`measurement`, and `numeric-claim` lenses (the change-type judgment for the remaining lenses
+stays with the researcher at Step 5).
 
 **The verifier pass is refute-biased.** The reviewer proposes; a separate pass tries to *break*
 each finding. Only `verdict: "confirmed"` ships. A finding the verifier cannot ground is

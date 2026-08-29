@@ -26,8 +26,9 @@ Three destinations, and everything goes to exactly one:
 - **Root clutter.** A file at the repository root that is not on the allowlist. Top-level space
   is for things a newcomer must see first; everything else lives in a directory.
 - **Draft names.** `untitled`, `tmp`, `temp`, `scratch`, `foo`, `bar`, `baz`, `asdf`, `test123` —
-  as the filename or its prefix (`scratch_x.py` counts; `scratchpad-notes.md` also counts,
-  deliberately: rename it).
+  as the whole first word of the filename, ending at a non-alphanumeric boundary (`tmp.R` and
+  `scratch_x.py` count; `tmpfile.R` and `scratchpad-notes.md` do not — the token embedded in a
+  longer word is deliberately tolerated to avoid false positives, so name real files real names).
 - **Superseded copies.** `analysis_old.R`, `deck_backup.tex`, `notes_copy.md`. If it is worth
   keeping, archive it with a reason; otherwise delete it — **git already has the history.**
 - **Version-in-filename.** `model_v2.R`, `paper_final.tex`, `script_fixed.py`. That is what git

@@ -73,8 +73,25 @@ def get_session_dir() -> Path:
     return session_dir
 
 
-def read_cache() -> dict:
-    """Read the context monitor cache."""
+# The cache file is per-PROJECT (the directory hash above), but the state in
+# it — tool_calls, shown_* threshold flags, throttle stamp — is per-SESSION.
+# Storing it flat made "once per session" mean "once per project forever":
+# after the first session crossed 80%/90%, no later session ever saw a
+# context warning again. State is therefore namespaced by session_id (from
+# the hook payload) and pruned after SESSION_STATE_TTL_DAYS.
+
+_SESSION_ID = "default"
+SESSION_STATE_TTL_DAYS = 14
+
+
+def set_session_id(hook_input: dict) -> None:
+    global _SESSION_ID
+    sid = hook_input.get("session_id")
+    if isinstance(sid, str) and sid:
+        _SESSION_ID = sid
+
+
+def _read_all() -> dict:
     cache_file = get_session_dir() / "context-monitor-cache.json"
     if not cache_file.exists():
         return {}
@@ -84,11 +101,31 @@ def read_cache() -> dict:
         return {}
 
 
+def read_cache() -> dict:
+    """This session's slice of the context-monitor cache."""
+    sessions = _read_all().get("sessions", {})
+    entry = sessions.get(_SESSION_ID, {})
+    return entry if isinstance(entry, dict) else {}
+
+
 def save_cache(data: dict) -> None:
-    """Save the context monitor cache."""
+    """Save this session's slice; prune sessions unseen for the TTL."""
+    import time
+    all_state = _read_all()
+    # Drop legacy top-level keys from the old project-global schema.
+    for k in ("tool_calls", "shown_learn", "shown_warn_80", "shown_warn_90",
+              "last_check_time"):
+        all_state.pop(k, None)
+    sessions = all_state.setdefault("sessions", {})
+    data["_last_seen"] = time.time()
+    sessions[_SESSION_ID] = data
+    cutoff = time.time() - SESSION_STATE_TTL_DAYS * 86400
+    for sid in [k for k, v in sessions.items()
+                if not isinstance(v, dict) or v.get("_last_seen", 0) < cutoff]:
+        del sessions[sid]
     cache_file = get_session_dir() / "context-monitor-cache.json"
     try:
-        cache_file.write_text(json.dumps(data, indent=2))
+        cache_file.write_text(json.dumps(all_state, indent=2))
     except IOError:
         pass
 
@@ -228,6 +265,7 @@ def run_context_monitor() -> int:
         hook_input = json.load(sys.stdin)
     except (json.JSONDecodeError, IOError):
         hook_input = {}
+    set_session_id(hook_input)
 
     # Estimate current context usage (coarse proxy)
     percentage = estimate_context_percentage(hook_input)

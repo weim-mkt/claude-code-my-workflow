@@ -30,12 +30,19 @@ if [ -n "$1" ]; then
         exit 1
     fi
 else
-    # Render all QMD files (skip backups)
+    # Render all QMD files (skip backups). A failed render must NOT be
+    # downgraded to a warning: the copy loop below would then ship the STALE
+    # html from the last successful render to docs/ and exit 0, telling
+    # /deploy the deploy succeeded. Track failures, skip their html, exit 1.
     echo "Rendering all Quarto files..."
+    FAILED_QMD=""
     for qmd in *.qmd; do
         if [ -f "$qmd" ] && [[ ! "$qmd" == *"_backup"* ]]; then
             echo "  Rendering $qmd..."
-            quarto render "$qmd" || echo "  Warning: Failed to render $qmd"
+            if ! quarto render "$qmd"; then
+                echo "  FAILED: $qmd" >&2
+                FAILED_QMD="$FAILED_QMD $qmd"
+            fi
         fi
     done
 fi
@@ -46,6 +53,12 @@ mkdir -p "$DOCS_DIR/slides"
 
 for html in *.html; do
     if [ -f "$html" ]; then
+        # Never ship the stale html of a qmd that failed to render this run.
+        case " ${FAILED_QMD:-} " in
+            *" ${html%.html}.qmd "*)
+                echo "  SKIPPED (render failed): $html" >&2
+                continue ;;
+        esac
         echo "  Copying $html..."
         cp "$html" "$DOCS_DIR/slides/"
 
@@ -90,3 +103,8 @@ fi
 echo ""
 echo "=== Sync complete! ==="
 echo "Files synced to: $DOCS_DIR/slides/"
+
+if [ -n "${FAILED_QMD:-}" ]; then
+    echo "sync_to_docs: render FAILED for:${FAILED_QMD} — their html was NOT synced." >&2
+    exit 1
+fi

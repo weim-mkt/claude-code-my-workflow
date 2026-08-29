@@ -24,4 +24,9 @@ qs2::qs_save(results$fit, here::here("scripts", "R", "_outputs", "model.qs2"))
 write_main_table(results$fit)
 plot_main_figure(cleaned)
 
+# Session snapshot, last: proves which library versions produced the outputs
+# above (see /capture-environment and TROUBLESHOOTING "sessionInfo.txt").
+writeLines(capture.output(sessionInfo()),
+           here::here("scripts", "R", "_outputs", "sessionInfo.txt"))
+
 message("Pipeline complete. Outputs in ", here::here("scripts", "R", "_outputs"), ".")

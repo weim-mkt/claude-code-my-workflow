@@ -189,6 +189,18 @@ if [ "$fail" -gt 0 ]; then
     exit 1
 fi
 
+# Per-clone git config that .gitattributes and the sync ritual RELY on but git
+# does not track — a fresh clone silently lacks it (fork-setup.sh installs it).
+if grep -q 'merge=keep-ours' .gitattributes 2>/dev/null; then
+    if [ "$(git config merge.keep-ours.driver 2>/dev/null)" != "true" ]        || [ "$(git config rerere.enabled 2>/dev/null)" != "true" ]; then
+        echo ""
+        echo "⚠ Per-clone fork config missing: .gitattributes routes generated HTML"
+        echo "  through the keep-ours merge driver, but this clone has not run"
+        echo "  ./scripts/fork-setup.sh — the next upstream merge will hand-merge"
+        echo "  build output. Run it once (idempotent)."
+    fi
+fi
+
 echo -e "${GREEN}Setup looks good!${RESET} Next steps:"
 echo "  1. Open Claude Code in this directory:  claude"
 echo "  2. Compile the sample deck:              /compile-latex HelloWorld"

@@ -85,7 +85,7 @@ the content it reviewed, not to the surface's name.
 
 **Review cadence:** After every significant session (plan approval, feature implementation)
 
-**Size limit:** Keep under 200 lines **and** under 25KB.
+**Size limit:** Keep under **250 lines and 30KB** (amended 2026-08-29 from 200/25KB: the file sat at 228 lines / 31KB — breaching its own cap ungated — and was compressed back to ~226/28KB without any lesson losing its incident or date; the new numbers are the tightest currently-true bound and are now enforced by a red gate in `check-derived-counts.py`, so the next breach is caught at commit time instead of drifting. Since the file is linked-not-imported, the cap protects readability, not a context budget — see the 2026-08-21 correction below.)
 
 > **Corrected 2026-08-21.** This previously read "stays in Claude's system prompt."
 > That is **not** how this file loads: `CLAUDE.md` only markdown-links `MEMORY.md`, it does

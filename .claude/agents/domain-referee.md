@@ -66,7 +66,7 @@ Your disposition shapes *what you notice*, not *whether you're fair*. Don't dist
 
 ## Report format
 
-Write to `quality_reports/peer_review_[paper]/referee_domain.md`:
+Return the finished report as your final response, structured exactly as below. The calling skill saves it to `quality_reports/peer_review_[paper]/referee_domain.md` — or, when your dispatch prompt carries a referee index (variance mode spawns several instances of this agent), to `referee_[index]_domain.md` so N referees never collide on one filename (your `tools:` grant is read-only by design — reviewers never write files):
 
 ```markdown
 # Domain Referee Report
@@ -136,3 +136,15 @@ When invoked with `--r2` or `--r3`:
 - Be direct. Academic hedging ("it might be useful if perhaps the authors considered") wastes the author's time. "The paper needs X because Y" is better.
 - No rewriting for the author. Point to the problem; don't propose the fix.
 - Praise what deserves praise. A report with zero positive observations is a Skeptic stuck in attack mode — you'll lose the editor's trust.
+
+
+## Typed findings (fan-out contract)
+
+When dispatched by a fan-out skill that reduces typed findings (`/seven-pass-review`, `/slide-excellence`, `/qa-quarto`, `/review-paper`, `/deep-audit`), end your response with a fenced ```json block containing a bare ARRAY (not a `{"findings": ...}` wrapper) conforming to `.claude/references/finding-schema.json`:
+
+- `severity`: `blocker` | `major` | `minor` | `nit` — this vocabulary, whatever rating words the prose sections above use.
+- `id`: sha1 of `"<file>:<line>:<locus>"` — lens-independent, so the same defect dedups across rounds and lenses.
+- `rule`: the documented rule violated (a finding citing no rule is an opinion); `failing_case`: the concrete failure, not "could be clearer".
+- `mechanical`: **never** `true` for an estimand, assumption, specification, inference-procedure, sample-definition, or reporting-language change.
+
+The prose report is for the human; the JSON array is what the reducer stacks and `scripts/validate-findings.py` validates — a review that ends without a valid array dies at its final gate. Standalone invocations (a user running this agent directly, outside any fan-out) may omit the block.

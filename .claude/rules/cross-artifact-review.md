@@ -12,13 +12,13 @@ A paper is not an island. Its claims depend on the code that produced them. Revi
 ```
 manuscript.tex ──cites──> Table 2
 Table 2        ──from──> scripts/R/_outputs/results.rds
-results.rds    ──by──> scripts/R/03_analyze.R
-03_analyze.R   ──uses──> scripts/R/_outputs/clean.rds
-clean.rds      ──by──> scripts/R/02_clean.R
-02_clean.R     ──reads──> data/raw.csv
+results.rds    ──by──> scripts/R/03-analyze.R
+03-analyze.R   ──uses──> scripts/R/_outputs/clean.rds
+clean.rds      ──by──> scripts/R/02-clean_data.R
+02-clean_data.R ──reads──> data/raw.csv
 ```
 
-A bug in `02_clean.R` invalidates Table 2. Reviewing `manuscript.tex` without touching the code misses this class of error entirely.
+A bug in `02-clean_data.R` invalidates Table 2. Reviewing `manuscript.tex` without touching the code misses this class of error entirely.
 
 ## When to apply
 
@@ -27,7 +27,7 @@ Applies when `/review-paper` runs on a manuscript that references analysis scrip
 Detection signals:
 
 - `\input{scripts/R/...}` or `\input{tables/...}`
-- `%% source: scripts/R/03_analyze.R` comments
+- `%% source: scripts/R/03-analyze.R` comments
 - Numeric claims in text (ATT, coefficients, N, p-values) **combined with** a sibling `scripts/R/` / `scripts/stata/` / `scripts/python/` directory
 - Table labels in the paper that match filenames under `scripts/*/\_outputs/`
 

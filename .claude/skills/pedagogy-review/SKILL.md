@@ -21,7 +21,7 @@ Perform a comprehensive pedagogical review.
    - Performs deck-level analysis (narrative arc, pacing, visual rhythm, notation)
    - Considers student perspective (prerequisites, objections)
 
-3. **The agent produces a report** saved to:
+3. **The agent returns the report inline** (its grant is read-only); **you** save it to:
    `quality_reports/[FILENAME_WITHOUT_EXT]_pedagogy_report.md`
 
 4. **Present summary to user:**

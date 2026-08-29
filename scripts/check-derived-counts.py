@@ -454,9 +454,35 @@ CHECKS = [
     ("release inventory gates",  r'Inventory at release:[^\n*]*?(\d+) gates',  [SEC("CHANGELOG.md (current release)", _CL_CURRENT)], n_gates()),
 ]
 
+# Instruction-file size caps, each stated in the file (or rule) it governs.
+# A self-declared cap with no gate is how MEMORY.md sat 28% over its own limit
+# for a release: (path, max_lines, max_bytes, where the cap is stated).
+SIZE_CAPS = [
+    ("MEMORY.md", 250, 30_000, ".claude/rules/meta-governance.md"),
+    ("CLAUDE.md", 200, None,   "CLAUDE.md header comment"),
+]
+
+
+def check_size_caps():
+    problems = []
+    for path, max_lines, max_bytes, stated_in in SIZE_CAPS:
+        t = read(path)
+        nl, nb = len(t.splitlines()), len(t.encode())
+        over = []
+        if max_lines and nl > max_lines: over.append(f"{nl} lines > {max_lines}")
+        if max_bytes and nb > max_bytes: over.append(f"{nb} bytes > {max_bytes}")
+        status = "; ".join(over) if over else "ok"
+        print(f"  size-cap               {path:<28} {status}")
+        if over:
+            problems.append(f"{path}: {'; '.join(over)} (cap stated in {stated_in} — "
+                            f"trim per meta-governance: compress, never drop a lesson's incident or date)")
+    return problems
+
+
 def main():
     bad = []
     print("check-derived-counts: enumerable claims outside surface-sync's scope")
+    bad.extend(check_size_caps())
     for label, pat, surfaces, actual in CHECKS:
         # A row with no REQUIRED surface can never go red: every surface would be
         # free to drop its claim. Such a row is not a gate, so say so.
