@@ -31,7 +31,7 @@
 # Downstream control files (all tracked in the downstream repo):
 #   .claude/sync-exclude       lines: "merge <repo-relative-path>" | "keep <path>" | # comment
 #   .claude/sync-base/<path>   base copies for merge-mode files (advanced by --apply)
-#   .claude/workflow-pin.json  {template_sha, synced_at, files: {path: blob_sha}}
+#   .claude/workflow-pin.json  {template_sha, template_committed_at, synced_at, files: {path: blob_sha}}
 #
 # Exit codes: 0 = clean/applied, 1 = drift needing a human (locally-edited files,
 # merge conflicts, manifest errors), 2 = could-not-run.
@@ -184,18 +184,18 @@ def run_sync(template: Path, downstream: Path, apply: bool) -> int:
     bootstrap = pin is None or not recorded
 
     # Stale-clone guard: a behind-origin template clone syncing "backwards" looks
-    # plausible in every other respect. synced_at is ISO UTC.
-    if pin and pin.get("synced_at"):
-        try:
-            pinned_t = time.mktime(time.strptime(pin["synced_at"][:19], "%Y-%m-%dT%H:%M:%S"))
-        except ValueError:
-            pinned_t = 0
-        if pinned_t and sha_date < pinned_t - 60:
-            print("!! WARNING: template HEAD is OLDER than the last sync — this clone "
-                  "is probably behind origin. Pull it first.")
-            if apply and not os.environ.get("SYNC_ALLOW_OLDER"):
-                die("refusing --apply from an older template (set SYNC_ALLOW_OLDER=1 "
-                    "to override)")
+    # plausible in every other respect. Compare COMMIT dates — HEAD's commit is
+    # legitimately older than the wall-clock moment anyone synced it, so the
+    # original synced_at comparison false-alarmed on every converged rerun (and
+    # falsely refused re-apply). Pins written before this field existed skip the
+    # guard once; the field is recorded on the next --apply.
+    pinned_commit_t = (pin or {}).get("template_committed_at", 0)
+    if pinned_commit_t and sha_date < pinned_commit_t - 60:
+        print("!! WARNING: template HEAD is OLDER than the pinned template commit — "
+              "this clone is probably behind origin. Pull it first.")
+        if apply and not os.environ.get("SYNC_ALLOW_OLDER"):
+            die("refusing --apply from an older template (set SYNC_ALLOW_OLDER=1 "
+                "to override)")
 
     # ---- manifest sanity: every entry must exist in the template -----------
     problems = []
@@ -353,6 +353,7 @@ def run_sync(template: Path, downstream: Path, apply: bool) -> int:
             files[p] = blob_sha(f.read_bytes())
     write_pin_atomic(downstream, {
         "template_sha": sha,
+        "template_committed_at": sha_date,
         "synced_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "files": files,
     })
@@ -518,6 +519,25 @@ def selftest(script_repo_root: Path) -> int:
                            capture_output=True, text=True)
         check("converged report is clean rc=0", r.returncode == 0)
         check("no-op merges not relisted", "merge    " not in r.stdout)
+
+        # stale-clone guard: pin records a NEWER template commit than HEAD has
+        pin3 = load_pin(dwn)
+        pin3["template_committed_at"] = int(time.time()) + 86400
+        write_pin_atomic(dwn, pin3)
+        r = subprocess.run(["bash", str(script), str(dwn)], env=env,
+                           capture_output=True, text=True)
+        check("stale-clone warning fires on report", "OLDER than the pinned" in r.stdout)
+        r = subprocess.run(["bash", str(script), str(dwn), "--apply"], env=env,
+                           capture_output=True, text=True)
+        check("stale-clone apply refused", r.returncode != 0)
+        r = subprocess.run(["bash", str(script), str(dwn), "--apply"],
+                           env=dict(env, SYNC_ALLOW_OLDER="1"),
+                           capture_output=True, text=True)
+        check("SYNC_ALLOW_OLDER overrides refusal", r.returncode == 0)
+        r = subprocess.run(["bash", str(script), str(dwn)], env=env,
+                           capture_output=True, text=True)
+        check("guard clears after re-apply rewrites the pin",
+              r.returncode == 0 and "OLDER" not in r.stdout)
 
     print(f"selftest: {'ALL PASS' if not failures else f'{len(failures)} FAILURE(S)'}")
     return 0 if not failures else 1
