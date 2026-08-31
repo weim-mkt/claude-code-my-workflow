@@ -37,7 +37,9 @@ cd my-project
 
 Running research projects off this template? Each downstream project updates its vendored
 copy with `scripts/sync-from-template.sh <project-root> [--apply]` (manifest-driven: your
-per-project adaptations are 3-way merged or left alone, never clobbered).
+per-project adaptations are 3-way merged or left alone, never clobbered). With several
+projects, register them once and update them all in one command:
+`scripts/sync-all-downstreams.sh --apply --commit`.
 
 Replace `YOUR_USERNAME` with your GitHub username.
 

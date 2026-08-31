@@ -230,7 +230,7 @@ Claude Code itself is free to install (the source is public on GitHub, but it is
 
 That's it. Everything else — agents, hooks, rules — runs automatically in the background (the commit gate from the moment you've run `install-hooks.sh`).
 
-If you run several research projects off one clone of this template, each project updates its vendored copy with `scripts/sync-from-template.sh <project-root> [--apply]` — manifest-driven, so per-project adaptations are 3-way merged or left alone, never clobbered.
+If you run several research projects off one clone of this template, each project updates its vendored copy with `scripts/sync-from-template.sh <project-root> [--apply]` — manifest-driven, so per-project adaptations are 3-way merged or left alone, never clobbered. Once each project is registered (`scripts/sync-all-downstreams.sh --register <project-root>`), a template update reaches every one of them with a single `scripts/sync-all-downstreams.sh --apply --commit`; projects that genuinely need a human are reported, never auto-resolved.
 :::
 
 ::: {.callout-tip collapse="true"}
