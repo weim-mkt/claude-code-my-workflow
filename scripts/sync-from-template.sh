@@ -53,6 +53,11 @@ from pathlib import Path
 
 MARKER = ".claude/references/finding-schema.json"  # template identity sentinel
 
+# The directories the sync walks. managed() decides what inside them is in scope;
+# these must agree, or a path managed() accepts is never enumerated (that is how
+# templates/ silently stayed unsynced after being added to scope).
+SCOPE_ROOTS = (".claude", "scripts", "templates")
+
 
 def die(msg, code=2):
     print(f"sync-from-template: {msg}", file=sys.stderr)
@@ -182,13 +187,13 @@ def run_sync(template: Path, downstream: Path, apply: bool) -> int:
     # ---- template file list at the ONE resolved commit ---------------------
     tree = {}  # path -> (mode, blob_sha)
     for line in git(template, "ls-tree", "-r", sha,
-                    "--", ".claude", "scripts").splitlines():
+                    "--", *SCOPE_ROOTS).splitlines():
         meta, path = line.split("\t", 1)
         mode, typ, bsha = meta.split()
         if typ == "blob" and managed(path):
             tree[path] = (mode, bsha)
 
-    dirty = git(template, "status", "--porcelain", "--", ".claude", "scripts").strip()
+    dirty = git(template, "status", "--porcelain", "--", *SCOPE_ROOTS).strip()
 
     manifest = load_manifest(downstream)
     pin = load_pin(downstream)
@@ -270,7 +275,7 @@ def run_sync(template: Path, downstream: Path, apply: bool) -> int:
 
     # downstream-only files under managed dirs (never deleted; orphans annotated)
     downstream_only = []
-    for base_dir in (".claude", "scripts"):
+    for base_dir in SCOPE_ROOTS:
         root = downstream / base_dir
         if not root.is_dir():
             continue
