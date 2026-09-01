@@ -151,14 +151,44 @@ def main():
 
     # 1. root clutter — files AND top-level directories (ROOT_ALLOW_DIRS was
     #    previously dead code; the audit caught that no directory check ran)
+    #
+    #    The allowlists below describe THIS template's layout. A downstream project
+    #    that vendors .claude/ + scripts/ gets this script too, and its own top-level
+    #    layout (code/, results/, writing/, a paper submodule...) is not the
+    #    template's business — flagging it produced 20+ "violations" that were just
+    #    the project being itself. So a project extends the lists in
+    #    .claude/repo-hygiene-allow (one name per line, '#' comments, a trailing /
+    #    marks a directory). Everything else the gate checks — draft names,
+    #    superseded copies, tracked build artifacts, undocumented archives — applies
+    #    everywhere and is never relaxed.
+    allow_files, allow_dirs = set(ROOT_ALLOW), set(ROOT_ALLOW_DIRS)
+    sandbox_prefixes = []
+    extra = os.path.join(ROOT, ".claude", "repo-hygiene-allow")
+    if os.path.isfile(extra):
+        with open(extra, encoding="utf-8") as h:
+            for line in h:
+                line = line.split("#", 1)[0].strip()
+                if not line:
+                    continue
+                if line.endswith("/**"):
+                    # Sandbox prefix: draft/versioned filenames are permitted under
+                    # this path, exactly as explorations/ permits them here. For
+                    # design mockups, pilot instruments and the like, `_v2` IS the
+                    # meaningful name, not a symptom.
+                    sandbox_prefixes.append(line[:-2])
+                    allow_dirs.add(line.split("/", 1)[0])
+                else:
+                    (allow_dirs if line.endswith("/") else allow_files).add(line.rstrip("/"))
+
     top_dirs = {f.split("/",1)[0] for f in files if "/" in f}
-    for d in sorted(top_dirs - ROOT_ALLOW_DIRS):
-        errs.append(f"{d}/: unexpected top-level directory — add to ROOT_ALLOW_DIRS with a reason, or relocate")
+    for d in sorted(top_dirs - allow_dirs):
+        errs.append(f"{d}/: unexpected top-level directory — add it to "
+                    f".claude/repo-hygiene-allow (as '{d}/') with a reason, or relocate")
     for f in files:
         if "/" in f: continue
-        if f not in ROOT_ALLOW:
+        if f not in allow_files:
             errs.append(f"{f}: unexpected file at repo root — move it into a directory, "
-                        f"or add it to ROOT_ALLOW in this script with a reason")
+                        f"or add it to .claude/repo-hygiene-allow with a reason")
 
     # 2. draft / scratch / duplicate naming anywhere
     NUMBERED_STAGE = re.compile(r'^\d+[-_]')   # 01_explore.R, 02_clean.R — pipeline stages, not drafts
@@ -170,6 +200,8 @@ def main():
         # explorations/ is the sandbox BY DESIGN — its own protocol permits
         # versioned and dated filenames there (exploration-folder-protocol.md).
         if f.startswith("explorations/"):
+            continue
+        if any(f.startswith(px) for px in sandbox_prefixes):
             continue
         # sibling-required numbered-duplicate check
         m2 = re.match(r'^(.*) \d+(\.[a-z0-9]+)$', base, re.I)

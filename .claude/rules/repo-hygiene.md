@@ -69,6 +69,24 @@ tree says otherwise wins; this is the default.
 *Numbered pipeline stages are exempt* — `01_explore.R`, `02_clean.R`, `03_analyze.R` are
 idiomatic, not drafts.
 
+## Projects declare their own shape
+
+The root allowlists in `check-repo-hygiene.py` describe **this template's** layout. A
+downstream project that vendors the checker has its own — `code/`, `results/`, a paper
+submodule — and that is not the template's business. Declare it in
+**`.claude/repo-hygiene-allow`** (one entry per line, `#` comments):
+
+```
+code/                    # analysis pipeline
+AGENTS.md                # Codex entrypoint
+lab_design/**            # sandbox: versioned mockups are the meaningful names here
+```
+
+A trailing `/` marks a directory, a bare name a root file, and `/**` marks a **sandbox
+prefix** — draft/versioned filenames are permitted under it, exactly as `explorations/`
+permits them here. Everything else the gate enforces (superseded copies, tracked build
+artifacts, undocumented archives) applies everywhere and is never relaxed.
+
 ## Archiving, not deleting
 
 When work is superseded but the record matters — a prior specification, an approach that failed
