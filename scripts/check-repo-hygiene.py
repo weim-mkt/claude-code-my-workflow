@@ -136,6 +136,23 @@ def tracked():
     r = subprocess.run(["git", "-C", ROOT, "ls-files", "-z"], capture_output=True)
     return [f for f in r.stdout.decode("utf-8", "surrogateescape").split("\0") if f]
 
+def submodules():
+    """Paths of gitlink entries (mode 160000).
+
+    git ls-files prints a submodule as a bare path with no trailing slash, so the
+    root-clutter check read a project's paper submodule as an unexpected FILE at
+    the root and there was no way to allow it as what it is — a directory.
+    """
+    r = subprocess.run(["git", "-C", ROOT, "ls-files", "--stage"],
+                       capture_output=True, text=True)
+    out = set()
+    for line in r.stdout.splitlines():
+        if line.startswith("160000 "):
+            parts = line.split("\t", 1)
+            if len(parts) == 2:
+                out.add(parts[1])
+    return out
+
 def main():
     # Violations print real file names now, and a cp1252 or cp932 pipe (Git Bash,
     # a captured hook) cannot encode every one: print UTF-8, whatever the console.
@@ -180,12 +197,14 @@ def main():
                 else:
                     (allow_dirs if line.endswith("/") else allow_files).add(line.rstrip("/"))
 
-    top_dirs = {f.split("/",1)[0] for f in files if "/" in f}
+    subs = submodules()
+    top_dirs = {f.split("/",1)[0] for f in files if "/" in f} | {s for s in subs if "/" not in s}
     for d in sorted(top_dirs - allow_dirs):
         errs.append(f"{d}/: unexpected top-level directory — add it to "
                     f".claude/repo-hygiene-allow (as '{d}/') with a reason, or relocate")
     for f in files:
         if "/" in f: continue
+        if f in subs: continue          # a submodule is a directory, checked above
         if f not in allow_files:
             errs.append(f"{f}: unexpected file at repo root — move it into a directory, "
                         f"or add it to .claude/repo-hygiene-allow with a reason")
