@@ -303,25 +303,86 @@ class IssueDetector:
         return overflows
 
     @staticmethod
-    def check_broken_citations(content: str, bib_file: Path) -> List[str]:
-        """Check for LaTeX citation keys not in bibliography.
+    def resolve_bibliographies(filepath: Path, content: str) -> List[Path]:
+        """Find the bibliographies THIS document actually uses.
 
-        Matches \\cite{}, \\citep{}, \\citet{}, \\citeauthor{}, \\citeyear{}, etc.
+        The document's own declaration wins: \\bibliography{a,b},
+        \\addbibresource{a.bib}, or a Quarto `bibliography:` key. Only if the file
+        declares nothing do we fall back to any .bib sitting nearby. Hardcoding one
+        filename made every project that names its bibliography something else look
+        like it had hundreds of broken citations.
         """
+        names: List[str] = []
+        for m in re.finditer(r'\\(?:bibliography|addbibresource)\{([^}]+)\}', content):
+            names.extend(n.strip() for n in m.group(1).split(','))
+        for m in re.finditer(r'^\s*bibliography:\s*(.+)$', content, re.MULTILINE):
+            raw = m.group(1).strip()
+            if raw.startswith('['):
+                names.extend(n.strip().strip('"\'') for n in raw.strip('[]').split(','))
+            elif raw and not raw.startswith('#'):
+                names.append(raw.strip('"\''))
+        for m in re.finditer(r'^\s*-\s*([^\s#]+\.bib)\s*$', content, re.MULTILINE):
+            names.append(m.group(1))
+
+        search_dirs = [filepath.parent, filepath.parent.parent, filepath.parent.parent.parent]
+        found: List[Path] = []
+        for name in names:
+            name = name.strip()
+            if not name:
+                continue
+            cand_names = [name] if name.endswith('.bib') else [name + '.bib']
+            for d in search_dirs:
+                for cn in cand_names:
+                    c = (d / cn)
+                    if c.is_file() and c not in found:
+                        found.append(c)
+                        break
+        if found:
+            return found
+
+        # Nothing declared — fall back to any .bib nearby (never a recursive scan;
+        # that could walk into restricted data directories).
+        for d in search_dirs:
+            if not d.is_dir():
+                continue
+            for c in sorted(d.glob('*.bib')):
+                if c not in found:
+                    found.append(c)
+            if found:
+                break
+        return found
+
+    @staticmethod
+    def bib_keys(bib_files: List[Path]) -> Optional[set]:
+        """Union of citation keys across the bibliographies. None = inapplicable."""
+        if not bib_files:
+            return None
+        keys = set()
+        for f in bib_files:
+            try:
+                keys |= set(re.findall(r'@\w+\{([^,]+),',
+                                       f.read_text(encoding='utf-8', errors='replace')))
+            except OSError:
+                continue
+        return keys
+
+    @staticmethod
+    def check_broken_citations(content: str, bib_keys: Optional[set]) -> List[str]:
+        """LaTeX citation keys not in the bibliography.
+
+        `bib_keys` of None means no bibliography could be found: the check is
+        INAPPLICABLE and returns nothing. Reporting every key as broken because a
+        file is missing turns an unrunnable check into a hard 0/100 — a checker that
+        cannot run must say so, not fail the artifact.
+        """
+        if bib_keys is None:
+            return []
         cite_pattern = r'\\cite[a-z]*\{([^}]+)\}'
         cited_keys = set()
         for match in re.finditer(cite_pattern, content):
             keys = match.group(1).split(',')
             cited_keys.update(k.strip() for k in keys)
-
-        if not bib_file.exists():
-            return list(cited_keys)
-
-        bib_content = bib_file.read_text(encoding='utf-8')
-        bib_keys = set(re.findall(r'@\w+\{([^,]+),', bib_content))
-
-        broken = cited_keys - bib_keys
-        return list(broken)
+        return list(cited_keys - bib_keys)
 
     @staticmethod
     def check_plotly_widgets(html_file: Path, expected: int = None) -> Tuple[int, bool]:
@@ -522,7 +583,7 @@ class IssueDetector:
         return issues
 
     @staticmethod
-    def check_quarto_citations(content: str, bib_file: Path) -> List[str]:
+    def check_quarto_citations(content: str, bib_keys: Optional[set]) -> List[str]:
         """Check Quarto-style citation keys against bibliography.
 
         Supports patterns: @key, [@key], [@key1; @key2]
@@ -548,17 +609,10 @@ class IssueDetector:
                 continue
             cited_keys.add(key)
 
-        if not cited_keys:
-            return []
+        if not cited_keys or bib_keys is None:
+            return []   # None = no bibliography found: inapplicable, not "all broken"
 
-        if not bib_file.exists():
-            return list(cited_keys)
-
-        bib_content = bib_file.read_text(encoding='utf-8')
-        bib_keys = set(re.findall(r'@\w+\{([^,]+),', bib_content))
-
-        broken = cited_keys - bib_keys
-        return list(broken)
+        return list(cited_keys - bib_keys)
 
 # ==============================================================================
 # QUALITY SCORER
@@ -577,6 +631,10 @@ class QualityScorer:
             'minor': []
         }
         self.auto_fail = False
+        # Checks that could not run at all (missing prerequisite, not a defect).
+        # Surfaced in the report so an inapplicable check is visible rather than
+        # silently absent — and never scored as a failure.
+        self.notes: List[str] = []
         self.unverified = []  # could-not-verify notes (timeouts, missing tools)
 
     def score_quarto(self) -> Dict:
@@ -611,18 +669,23 @@ class QualityScorer:
             self.score -= pts(QUARTO_RUBRIC, 'critical', 'equation_overflow')
 
         # Check broken citations (LaTeX-style \cite patterns)
-        bib_file = self.filepath.parent.parent / 'Bibliography_base.bib'
-        broken_citations = IssueDetector.check_broken_citations(content, bib_file)
+        bib_files = IssueDetector.resolve_bibliographies(self.filepath, content)
+        bib_keys = IssueDetector.bib_keys(bib_files)
+        if bib_keys is None:
+            self.notes.append('citation check skipped: no bibliography found for this '
+                              'document (declare one with `bibliography:` or '
+                              '\\bibliography{...})')
+        broken_citations = IssueDetector.check_broken_citations(content, bib_keys)
 
         # Also check Quarto-style @key citations
-        quarto_broken = IssueDetector.check_quarto_citations(content, bib_file)
+        quarto_broken = IssueDetector.check_quarto_citations(content, bib_keys)
         # Merge both sets, avoiding duplicates
         all_broken = set(broken_citations) | set(quarto_broken)
         for key in all_broken:
             self.issues['critical'].append({
                 'type': 'broken_citation',
                 'description': f'Citation key not in bibliography: {key}',
-                'details': 'Add to Bibliography_base.bib or fix key',
+                'details': 'Add to the document\'s bibliography or fix key',
                 'points': pts(QUARTO_RUBRIC, 'critical', 'broken_citation')
             })
             self.score -= pts(QUARTO_RUBRIC, 'critical', 'broken_citation')
@@ -727,16 +790,17 @@ class QualityScorer:
                 return self._generate_report()
 
         # Check for undefined/broken citations (\cite, \citep, \citet patterns)
-        bib_file = self.filepath.parent.parent / 'Bibliography_base.bib'
-        if not bib_file.exists():
-            # Also check same directory
-            bib_file = self.filepath.parent / 'Bibliography_base.bib'
-        broken_citations = IssueDetector.check_broken_citations(content, bib_file)
+        bib_files = IssueDetector.resolve_bibliographies(self.filepath, content)
+        bib_keys = IssueDetector.bib_keys(bib_files)
+        if bib_keys is None:
+            self.notes.append('citation check skipped: no bibliography found for this '
+                              'document (declare one with \\bibliography{...})')
+        broken_citations = IssueDetector.check_broken_citations(content, bib_keys)
         for key in broken_citations:
             self.issues['critical'].append({
                 'type': 'undefined_citation',
                 'description': f'Citation key not in bibliography: {key}',
-                'details': 'Add to Bibliography_base.bib or fix key',
+                'details': 'Add to the document\'s bibliography or fix key',
                 'points': pts(BEAMER_RUBRIC, 'critical', 'undefined_citation')
             })
             self.score -= pts(BEAMER_RUBRIC, 'critical', 'undefined_citation')
@@ -796,6 +860,7 @@ class QualityScorer:
             'threshold': threshold,
             'auto_fail': self.auto_fail,
             'unverified': self.unverified,
+            'notes': self.notes,
             'issues': {
                 'critical': self.issues['critical'],
                 'major': self.issues['major'],
@@ -815,6 +880,11 @@ class QualityScorer:
         report = self._generate_report()
 
         print(f"\n# Quality Score: {self.filepath.name}\n")
+
+        for note in report.get('notes', []):
+            print(f"[N/A] {note}")
+        if report.get('notes'):
+            print()
 
         status_emoji = {
             'EXCELLENCE': '[EXCELLENCE]',

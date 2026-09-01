@@ -33,9 +33,17 @@ def n_translate_phases():
     return len(ph - {"0"})            # Phase 0 is pre-flight, not a translation phase
 
 def n_gates():
+    """How many gates the suite has — counted by LABEL, not by call site.
+
+    backtest.sh runs four template-only gates conditionally (a downstream project
+    gets the same script and reports them N/A), so a gate can appear as `run` in
+    one branch and `skip` in the other. Counting `run "` lines alone under-counted
+    the suite by four the moment that branching landed. Unique labels across both
+    forms is the honest count, and it stays right whichever way a gate is invoked.
+    """
     t = read("scripts/backtest.sh")
-    n = len(re.findall(r'^run "', t, re.M))
-    return n
+    labels = set(re.findall(r'^\s*(?:run|skip) "([^"]+)"', t, re.M))
+    return len(labels)
 
 # --- release-inventory counts -------------------------------------------------
 #

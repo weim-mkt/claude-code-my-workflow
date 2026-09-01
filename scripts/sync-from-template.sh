@@ -85,9 +85,21 @@ def managed(path: str) -> bool:
             return False
         if rel in ("settings.local.json", "sync-exclude", "workflow-pin.json"):
             return False
+        # Template-internal history. It links to the template's own CHANGELOG.md,
+        # which no downstream carries, so shipping it hands every project a dangling
+        # reference its link checker flags forever — and its content (this fork's
+        # release backlog) is of no use downstream anyway.
+        if rel == "references/v2.0-backlog.md":
+            return False
         return True
     if path.startswith("scripts/") and "/" not in path[len("scripts/"):]:
         return True  # top-level scripts only; scripts/R/ etc. stay out by design
+    # templates/ is IN scope because .claude/ content links into it — skill-template,
+    # requirements-spec, screening-rubric, executor-contract and friends are cited by
+    # rules and skills. A scope that is not closed under its own links ships every
+    # downstream a set of dangling references that its link checker then flags forever.
+    if path.startswith("templates/"):
+        return True
     return False
 
 
