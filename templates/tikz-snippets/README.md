@@ -4,7 +4,7 @@ Copy-paste starting points for common academic diagrams. Every snippet:
 
 - Compiles standalone via `\documentclass{standalone}` — verify quickly with `xelatex snippet.tex`.
 - Satisfies [`tikz-prevention.md`](../../.claude/rules/tikz-prevention.md): explicit node dimensions (P1), coordinate map comment (P2), no `scale=` (P3), directional keyword on every edge label (P4).
-- Embeds its palette inline so each snippet compiles standalone; adapt the colors to your [`Preambles/header.tex`](../../Preambles/header.tex) names when you adopt one.
+- Embeds its palette inline so each snippet compiles standalone; adapt the colors to your own preamble's color names (in this template, `Preambles/header.tex`) when you adopt one.
 
 ## Inventory
 
