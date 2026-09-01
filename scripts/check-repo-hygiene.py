@@ -31,6 +31,9 @@ ROOT_ALLOW = {
     # Instructions for agents other than Claude Code (Codex, Antigravity, ...), which
     # look for this file at the root; CLAUDE.md is Claude Code's equivalent.
     "AGENTS.md",
+    # git's own root files. .gitmodules is git-mandated at the root for any repo
+    # with a submodule — flagging it asked the user to relocate a file git requires.
+    ".gitmodules", ".mailmap",
 }
 ROOT_ALLOW_DIRS = {
     ".claude", ".git", ".github", ".githooks", ".vscode", "Figures", "Preambles",
@@ -143,12 +146,12 @@ def submodules():
     root-clutter check read a project's paper submodule as an unexpected FILE at
     the root and there was no way to allow it as what it is — a directory.
     """
-    r = subprocess.run(["git", "-C", ROOT, "ls-files", "--stage"],
+    r = subprocess.run(["git", "-C", ROOT, "ls-files", "--stage", "-z"],
                        capture_output=True, text=True)
     out = set()
-    for line in r.stdout.splitlines():
-        if line.startswith("160000 "):
-            parts = line.split("\t", 1)
+    for rec in r.stdout.split("\0"):
+        if rec.startswith("160000 "):
+            parts = rec.split("\t", 1)
             if len(parts) == 2:
                 out.add(parts[1])
     return out
