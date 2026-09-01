@@ -93,7 +93,13 @@ if not SCAN:
 # these docs are not counted as the repository's.
 UNTRACKED_NFC = {NFC(f) for f in (tracked("--others", "--exclude-standard") or set())} if TRACKED is not None else set()
 UNSCANNED = sorted(NFC(relp(f)) for f in set(SCAN) if NFC(relp(f)) in UNTRACKED_NFC)
-SCAN = sorted(f for f in set(SCAN) if TRACKED is None or NFC(relp(f)) in TRACKED_NFC)
+# .claude/worktrees/ holds whole checkouts of OTHER branches. Their links resolve
+# against that branch's tree, not this one, so scanning them reports failures for
+# files that exist perfectly well where those documents actually live.
+# check-skill-integrity and check-staleness already skip them; this gate did not.
+SCAN = sorted(f for f in set(SCAN)
+              if (TRACKED is None or NFC(relp(f)) in TRACKED_NFC)
+              and ".claude/worktrees/" not in f.replace(os.sep, "/"))
 
 def strip_code(t):
     t = re.sub(r'```.*?```', lambda m: "\n"*m.group(0).count("\n"), t, flags=re.S)
