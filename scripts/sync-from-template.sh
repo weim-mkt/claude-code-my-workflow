@@ -266,10 +266,15 @@ def run_sync(template: Path, downstream: Path, apply: bool) -> int:
             in_sync.append(path)
         elif path in recorded and d_sha == recorded[path]:
             refresh.append(path)  # untouched since we wrote it; template moved
-        elif bootstrap and subprocess.run(
+        elif (bootstrap or path not in recorded) and subprocess.run(
                 ["git", "-C", str(template), "cat-file", "-e", d_sha],
                 capture_output=True).returncode == 0:
-            refresh.append(path)  # bootstrap archaeology: content is a known template blob
+            # Archaeology: the local content IS a template blob, so it came from some
+            # template version and is merely stale. Applied on bootstrap AND to any
+            # path the pin does not mention — which is what a SCOPE WIDENING produces.
+            # Without the second case, every file newly brought into scope looked
+            # locally-edited and froze, since the pin could not have recorded it.
+            refresh.append(path)
         else:
             locally_edited.append(path)
 
