@@ -14,12 +14,18 @@
 #   * It never resolves anything. A project with locally-edited files, an unrecorded
 #     adaptation, or conflict markers is REPORTED, never auto-fixed — the re-sync tool
 #     decides nothing (release-engineering.md §4).
-#   * It never touches a project whose sync scope (.claude/**, scripts/*) is dirty.
-#     Applying over uncommitted work in scope would make that work unrecoverable by
-#     `git checkout`, since the sync overwrites rather than merges refreshed files.
-#   * It never stages with `git add -A`. Only the paths the sync itself touched
-#     (.git/SYNC_TOUCHED) are staged, so a project's unrelated in-progress work stays
-#     out of the workflow-sync commit.
+#   * It never overwrites uncommitted work -- and it does not need a dirty-tree test to
+#     keep that promise. The report stage freezes any path whose content differs from
+#     what the last sync wrote (EDITED, reported above as NEEDS DECISIONS), and the
+#     apply writes only paths the report classified refresh/new/merge; a merge-mode
+#     file's uncommitted local edits go INTO the 3-way merge. A `git status` test on
+#     .claude/ and scripts/ (used until 2026-10-11) added no protection and skipped
+#     projects for out-of-scope dirt: untracked scripts/R/*.R, a tracked
+#     settings.local.json, or the previous sync's own output left uncommitted.
+#   * It never stages with `git add -A`, and it commits with `git commit --only`. Only
+#     the paths the sync itself touched (.git/SYNC_TOUCHED) are staged and committed, so
+#     a project's unrelated in-progress work -- including changes the owner had already
+#     staged before the run -- stays out of the workflow-sync commit and stays staged.
 #
 # Registry: ~/.claude/downstream-projects (or $DOWNSTREAM_REGISTRY) — one absolute path
 # per line, '#' comments allowed. Machine-local by design: these paths differ per
@@ -123,13 +129,9 @@ while IFS= read -r line || [ -n "$line" ]; do
         n_human=$((n_human + 1)); [ "$rc_rollup" -eq 0 ] && rc_rollup=1; continue
     fi
 
-    # Applying: refuse a dirty sync scope (uncommitted work there is unrecoverable
-    # once a refresh overwrites it).
-    dirty="$(git -C "$proj" status --porcelain -- .claude scripts 2>/dev/null)"
-    if [ -n "$dirty" ]; then
-        printf '  %-38s SKIP (uncommitted changes in sync scope)\n' "$name"
-        n_skip=$((n_skip + 1)); rc_rollup=2; continue
-    fi
+    # Applying. No dirty-tree test here: the report above already froze every locally
+    # edited path (EDITED -> NEEDS DECISIONS, handled before this point), and the apply
+    # writes only refresh/new/merge paths -- see the header.
 
     aout="$("$SYNC" "$proj" --apply 2>&1)"; arc=$?
     asum="$(printf '%s\n' "$aout" | grep -E '^applied:' | head -1)"
@@ -152,11 +154,14 @@ while IFS= read -r line || [ -n "$line" ]; do
         printf '  %-38s applied, staging FAILED\n' "$name"
         n_human=$((n_human + 1)); [ "$rc_rollup" -eq 0 ] && rc_rollup=1; continue
     fi
-    if git -C "$proj" diff --cached --quiet; then
+    # Commit ONLY the touched paths (--only): whatever the owner had staged before the
+    # run stays staged and out of this commit. The pre-commit hook sees the same
+    # restricted index git builds for --only.
+    if (cd "$proj" && xargs git diff --quiet HEAD -- < "$touched"); then
         printf '  %-38s applied, nothing to commit\n' "$name"
         n_applied=$((n_applied + 1)); continue
     fi
-    if git -C "$proj" commit -q -m "workflow-sync: template ${template_sha:0:12}"; then
+    if (cd "$proj" && xargs git commit -q --only -m "workflow-sync: template ${template_sha:0:12}" -- < "$touched"); then
         printf '  %-38s applied + committed (%s)\n' "$name" \
                "$(git -C "$proj" rev-parse --short HEAD)"
         n_applied=$((n_applied + 1))
