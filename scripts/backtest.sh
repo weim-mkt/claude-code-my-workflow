@@ -30,13 +30,16 @@
 # Every gate runs to completion even if an earlier one fails — you get the whole
 # picture in one pass. Exit code is the max of all gates.
 #
-# TEMPLATE vs DOWNSTREAM. Four of the eleven gates check surfaces only the template
-# repo carries (README.md, guide/, docs/, CHANGELOG.md, the qualification ledger).
-# A downstream project that vendors .claude/ + scripts/ via sync-from-template.sh gets this
-# script too, and running it there used to emit "surface file missing" errors that
-# look like defects but only mean the gate is inapplicable. So the suite detects
-# which repo it is in and, in a downstream, runs the gates that DO apply while
-# labelling the rest N/A. Force either mode with BACKTEST_MODE=template|downstream.
+# TEMPLATE vs DOWNSTREAM. Five of the eleven gates check surfaces only the template
+# repo carries (README.md, guide/, docs/, CHANGELOG.md, the qualification ledger, the
+# tests/portability/ suite). A downstream project that vendors .claude/ + scripts/ via
+# sync-from-template.sh gets this script too, and running it there used to emit
+# "surface file missing" errors that look like defects but only mean the gate is
+# inapplicable. So the suite detects which repo it is in and, in a downstream, runs the
+# gates that DO apply while labelling the rest N/A. Force either mode with
+# BACKTEST_MODE=template|downstream. The Codex/Antigravity skill bridge (.agents/skills/,
+# skill-integrity check 6) is template-only too: sync-from-template.sh does not ship
+# scripts/sync-agent-skills.py, and without it check 6 has nothing to check.
 #
 # No `set -e`: it would abort after the first failure and hide the rest.
 set -uo pipefail
@@ -76,7 +79,7 @@ skip() {  # skip <label> <why>
 }
 
 echo "═══ BACKTEST: is this repo internally consistent and currently true? ═══"
-[ "$MODE" = downstream ] && echo "(downstream mode — template-only gates reported N/A)"
+[ "$MODE" = downstream ] && echo "(downstream mode — template-only gates reported N/A; the Codex/Antigravity skill bridge is template-only and not synced)"
 
 if [ "$MODE" = template ]; then
     run "surface-sync"   python3 "$DIR/check-surface-sync.py"
@@ -101,7 +104,11 @@ else
     skip "ledger-coverage" "audits the template's own qualification ledger"
 fi
 run "hook-battery"       bash "$DIR/hook-battery.sh"
-run "portability"        python3 "$DIR/portability-tests.py"
+if [ "$MODE" = template ]; then
+    run "portability"    python3 "$DIR/portability-tests.py"
+else
+    skip "portability"   "its suite (tests/portability/) is template-only and outside the sync scope"
+fi
 
 echo ""
 echo "── findings-validator smoke test ──"

@@ -97,6 +97,12 @@ def managed(path: str) -> bool:
         if rel == "references/v2.0-backlog.md":
             return False
         return True
+    # The Codex/Antigravity bridge generator. It writes and checks .agents/skills/,
+    # which is outside this scope, so shipping it alone made check-skill-integrity's
+    # check 6 report every wrapper "missing" (P1) in every downstream. Without it,
+    # check 6 has nothing to check: the bridge is template-only, like README.md.
+    if path == "scripts/sync-agent-skills.py":
+        return False
     if path.startswith("scripts/") and "/" not in path[len("scripts/"):]:
         return True  # top-level scripts only; scripts/R/ etc. stay out by design
     # templates/ is IN scope because .claude/ content links into it — skill-template,
