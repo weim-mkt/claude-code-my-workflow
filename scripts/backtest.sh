@@ -30,7 +30,7 @@
 # Every gate runs to completion even if an earlier one fails — you get the whole
 # picture in one pass. Exit code is the max of all gates.
 #
-# TEMPLATE vs DOWNSTREAM. Four of the ten gates check surfaces only the template
+# TEMPLATE vs DOWNSTREAM. Four of the eleven gates check surfaces only the template
 # repo carries (README.md, guide/, docs/, CHANGELOG.md, the qualification ledger).
 # A downstream project that vendors .claude/ + scripts/ via sync-from-template.sh gets this
 # script too, and running it there used to emit "surface file missing" errors that

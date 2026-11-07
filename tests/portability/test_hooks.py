@@ -576,7 +576,10 @@ class LogReminderNames(_Tmp):
         env = clean_env(self.home, CLAUDE_PROJECT_DIR=self.repo, **extra)
         fire("log-reminder.py", event or {}, env, pyflags)
         logs = os.path.join(self.repo, "quality_reports", "session_logs")
-        files = [f for f in os.listdir(logs) if f.endswith("_auto.md")] if os.path.isdir(logs) else []
+        # The fork names auto logs YYYY-MM-DD_auto_<topic-or-branch>.md (log-reminder.py
+        # log_basename); upstream writes YYYY-MM-DD_auto.md. Either is this hook's log.
+        files = ([f for f in os.listdir(logs) if re.match(r"\d{4}-\d{2}-\d{2}_auto(_[^/]+)?\.md$", f)]
+                 if os.path.isdir(logs) else [])
         if not files:
             return None
         with open(os.path.join(logs, files[0]), encoding="utf-8") as f:
