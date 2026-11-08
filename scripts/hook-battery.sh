@@ -523,7 +523,12 @@ esac
 echo "port 22"
 FAKESSH
 chmod +x "$FGH/gh" "$FGH/ssh"
-NOGH="$TMP/nogh"; mkdir -p "$NOGH"; ln -s "$(command -v python3)" "$NOGH/python3"
+# A wrapper, not a link: where `ln` copies (Git Bash, and the portability suite's
+# Windows simulation), macOS kills the copy of a platform binary (Apple's
+# /usr/bin/python3 stub exits 137 outside /usr/bin), which failed h9 for a reason
+# that has nothing to do with gh.
+NOGH="$TMP/nogh"; mkdir -p "$NOGH"
+printf '#!/bin/sh\nexec "%s" "$@"\n' "$(command -v python3)" > "$NOGH/python3"; chmod +x "$NOGH/python3"
 
 python3 - "$TMP" <<'MKISSUES'
 import json, sys
