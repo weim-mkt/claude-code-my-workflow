@@ -188,6 +188,11 @@ def run_sync(template: Path, downstream: Path, apply: bool) -> int:
         die("template HEAD is detached — check out a branch first")
 
     sha = git(template, "rev-parse", "HEAD").strip()
+
+    def is_template_blob(blob: str) -> bool:
+        """Does this content exist in the template's object store (any version)?"""
+        return subprocess.run(["git", "-C", str(template), "cat-file", "-e", blob],
+                              capture_output=True).returncode == 0
     sha_date = int(git(template, "show", "-s", "--format=%ct", sha).strip())
 
     # ---- template file list at the ONE resolved commit ---------------------
@@ -272,9 +277,7 @@ def run_sync(template: Path, downstream: Path, apply: bool) -> int:
             in_sync.append(path)
         elif path in recorded and d_sha == recorded[path]:
             refresh.append(path)  # untouched since we wrote it; template moved
-        elif (bootstrap or path not in recorded) and subprocess.run(
-                ["git", "-C", str(template), "cat-file", "-e", d_sha],
-                capture_output=True).returncode == 0:
+        elif (bootstrap or path not in recorded) and is_template_blob(d_sha):
             # Archaeology: the local content IS a template blob, so it came from some
             # template version and is merely stale. Applied on bootstrap AND to any
             # path the pin does not mention — which is what a SCOPE WIDENING produces.
@@ -296,8 +299,17 @@ def run_sync(template: Path, downstream: Path, apply: bool) -> int:
             rel = f.relative_to(downstream).as_posix()
             if not managed(rel) or rel in tree:
                 continue
-            tag = "  [was template-managed at last sync — deleted/renamed upstream]" \
-                if rel in recorded else ""
+            if rel in recorded:
+                tag = "  [was template-managed at last sync — deleted/renamed upstream]"
+            else:
+                # The pin cannot name a path the template had already dropped before the
+                # first managed sync, so a hand-copied project's stale copies looked like
+                # its own files. Template history still names them.
+                gone = git(template, "log", "-1", "--format=%h", sha, "--", rel).strip()
+                state = "unmodified" if is_template_blob(blob_sha(f.read_bytes())) \
+                    else "locally edited"
+                tag = (f"  [template file deleted/renamed upstream in {gone}; {state} copy"
+                       f" — delete it, or keep it on purpose]") if gone else ""
             downstream_only.append(rel + tag)
 
     # ---- report -------------------------------------------------------------
@@ -373,10 +385,18 @@ def run_sync(template: Path, downstream: Path, apply: bool) -> int:
         touched.append((Path(".claude/sync-base") / p).as_posix())
 
     # Pin records the hash AS APPLIED for every managed template path present
-    # downstream, so the next run's "unchanged-since-sync" test is exact.
+    # downstream, so the next run's "unchanged-since-sync" test is exact. A
+    # locally-edited file was NOT applied: it keeps its previous entry (or none), so
+    # the next run still sees the edit. Recording its local hash here made the NEXT
+    # run classify it as untouched-since-sync and overwrite it.
+    edited = set(locally_edited)
     files = {}
     for p in tree:
         f = downstream / p
+        if p in edited:
+            if p in recorded:
+                files[p] = recorded[p]
+            continue
         if f.is_file():
             files[p] = blob_sha(f.read_bytes())
     write_pin_atomic(downstream, {
@@ -448,9 +468,14 @@ def selftest(script_repo_root: Path) -> int:
             "line1 template-improved\nline2\nline3\nline4\nline5\nline6\nline7\n")
         (tpl / ".claude" / "rules" / "conflicted.md").write_text("both changed this line (template)\n")
         (tpl / "scripts" / "tool.py").write_text("print('v2')\n")
+        (tpl / ".claude" / "rules" / "retired.md").write_text("retired rule\n")
         for cmd in (["git", "init", "-q"], ["git", "add", "-A"],
                     ["git", "-c", "user.email=t@t", "-c", "user.name=t",
-                     "commit", "-qm", "fixture"]):
+                     "commit", "-qm", "fixture"],
+                    # a later template commit retires a file a hand copy still carries
+                    ["git", "rm", "-q", ".claude/rules/retired.md"],
+                    ["git", "-c", "user.email=t@t", "-c", "user.name=t",
+                     "commit", "-qm", "retire a rule"]):
             subprocess.run(cmd, cwd=tpl, capture_output=True)
 
         old = lambda s: s.encode()
@@ -463,6 +488,7 @@ def selftest(script_repo_root: Path) -> int:
             "line1\nline2\nline3\nline4\nline5\nline6\nline7 project-adapted\n")
         (dwn / ".claude" / "rules" / "conflicted.md").write_text("both changed this line (project)\n")
         (dwn / ".claude" / "rules" / "mine-only.md").write_text("project only\n")
+        (dwn / ".claude" / "rules" / "retired.md").write_text("retired rule\n")  # stale copy
         (dwn / "scripts").mkdir()
         (dwn / "scripts" / "tool.py").write_text("print('v1')\n")                # recorded
         (dwn / ".claude" / "sync-base" / ".claude" / "rules" / "merged.md").write_text(
@@ -505,6 +531,11 @@ def selftest(script_repo_root: Path) -> int:
         check("merge conflict detected",
               "merge    .claude/rules/conflicted.md  [CONFLICTS]" in out)
         check("downstream-only listed", "local    .claude/rules/mine-only.md" in out)
+        check("stale copy of a template-deleted file is tagged",
+              any(ln.startswith("   local    .claude/rules/retired.md  [template file deleted")
+                  and "unmodified copy" in ln for ln in out.splitlines()))
+        check("a project-only file carries no tag",
+              "   local    .claude/rules/mine-only.md\n" in out)
         check("report wrote nothing",
               (dwn / ".claude" / "rules" / "moved.md").read_text() == "template v1\n")
 
@@ -531,6 +562,15 @@ def selftest(script_repo_root: Path) -> int:
         pin2 = load_pin(dwn)
         check("pin updated with template sha",
               pin2 and pin2["template_sha"] != "0" * 40)
+        check("pin does not record an EDITED file's local hash",
+              pin2["files"].get(".claude/rules/edited.md") != blob_sha(old("my local edit\n")))
+        # The defect this guards: the first --apply pinned the EDITED file at its local
+        # hash, so the SECOND one classified it as untouched-since-sync and overwrote it.
+        r = subprocess.run(["bash", str(script), str(dwn), "--apply"], env=env,
+                           capture_output=True, text=True)
+        check("locally-edited survives a second --apply",
+              (dwn / ".claude" / "rules" / "edited.md").read_text() == "my local edit\n"
+              and "EDITED   .claude/rules/edited.md" in r.stdout)
 
         # idempotence: resolve the conflict, re-run -> clean
         (dwn / ".claude" / "rules" / "conflicted.md").write_text("resolved by hand\n")
