@@ -352,6 +352,8 @@ class ClaimReconcileCaseVariants(_Proj):
                 shutil.rmtree(os.path.join(self.home, ".claude"), ignore_errors=True)
                 self.assertIn("STALE", self.edit(os.path.join(self.proj, rel)))
 
+
+
     def test_case_varied_project_prefix(self):
         up = os.path.join(os.path.dirname(self.proj), self.PROJ.upper(), "paper", "main.tex")
         self.assertIn("paper/main.tex changed", self.edit(up))
@@ -360,6 +362,40 @@ class ClaimReconcileCaseVariants(_Proj):
         self.assertIn("disagree", self.edit(os.path.join(self.proj, "paper.tex")))
         self.assertEqual(self.edit(os.path.join(self.proj, "PAPER.tex")), "")
         self.assertEqual(self.edit(os.path.join(self.proj, "notes.md")), "")
+
+
+class ClaimReconcileDownstreamLayouts(_Tmp):
+    """claim-reconcile-watch-scripts-only: a downstream project's pipeline lives in R/,
+    code/ or Julia/ and its figures in figures/. A WATCH that knew only the template's
+    scripts/ and output/ left every claim built there silently unflagged."""
+
+    LAYOUT = ("R/03-estimate.R", "code/clean.py", "Julia/model/solve.jl", "figures/fig1.pdf")
+
+    def setUp(self):
+        super().setUp()
+        self.proj = os.path.join(self.tmp, "proj")
+        claims = "".join(
+            f"  - id: L{i}\n    description: layout case\n"
+            f"    {'output_file' if rel.startswith('figures/') else 'source_file'}: {rel}\n"
+            for i, rel in enumerate(self.LAYOUT))
+        self.write("proj/quality_reports/passports/demo.yaml", "claims:\n" + claims)
+        for rel in self.LAYOUT + ("R/unrelated.R",):
+            self.write(f"proj/{rel}", "")
+
+    def edit(self, rel):
+        ev = {"tool_name": "Edit", "tool_input": {"file_path": os.path.join(self.proj, rel)}}
+        return fire("claim-reconcile.py", ev,
+                    clean_env(self.home, CLAUDE_PROJECT_DIR=self.proj))[0]
+
+    def test_downstream_code_and_output_roots_are_stale(self):
+        for rel in self.LAYOUT:
+            with self.subTest(rel=rel):
+                out = self.edit(rel)
+                self.assertIn(f"{rel} changed", out)
+                self.assertIn("STALE", out)
+
+    def test_a_file_no_passport_names_stays_silent(self):
+        self.assertEqual(self.edit("R/unrelated.R"), "")
 
 
 class ClaimReconcileStdin(_Proj):

@@ -72,7 +72,7 @@ def in_worktree(path: Path) -> bool:
 
 TOOLS = {
     "Agent", "Task", "Bash", "Edit", "Write", "MultiEdit", "Read", "Grep", "Glob",
-    "WebFetch", "WebSearch", "NotebookEdit",
+    "WebFetch", "WebSearch", "NotebookEdit", "Monitor",
 }
 
 # ---- Frontmatter parse -------------------------------------------------------
@@ -175,6 +175,9 @@ TOOL_INVOCATION_PATTERNS = {
     "Write": [r"`Write`\s+tool\b", r"\bWrite\s+tool\b"],
     "MultiEdit": [r"`MultiEdit`\s+tool\b"],
     "NotebookEdit": [r"\bNotebookEdit\b"],
+    # Monitor streams a background job's output. A body that tells the agent to
+    # "use the Monitor tool" must grant it (stata-replication said so without it).
+    "Monitor": [r"\bMonitor\s+tool\b", r"`Monitor`\s+tool\b"],
     # WebSearch/WebFetch are deliberately omitted. A skill body that
     # describes a forked agent's use of WebSearch is NOT the same as the
     # skill invoking WebSearch directly. Prose mentions dominate. The cost

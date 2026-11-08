@@ -10,8 +10,10 @@ immediately so the author re-runs /audit-reproducibility before relying
 on the affected tables.
 
 Fires on Write/Edit to:
-  - scripts/**/*.{R,do,py,jl}        (analysis code)      — vertical link
-  - output/**                        (regenerated outputs) — vertical link
+  - {scripts,R,code,src,analysis,julia,stata,python}/**/*.{R,do,py,jl}
+                                     (analysis code)      — vertical link
+  - {output,outputs,results,figures,tables}/**
+                                     (regenerated outputs) — vertical link
     (and the pre-v2.6 scripts/**/_outputs/**, kept so older forks still fire)
   - *.{tex,qmd,md,Rmd,typ,ipynb}     (display artifacts)   — horizontal link
 when a passport (quality_reports/passports/*.yaml) exists. It counts the
@@ -50,7 +52,11 @@ from pathlib import Path
 # Claude Code sends `C:\...\scripts\analysis.R`, which a `/`-only pattern never
 # matched, so every analysis-code and output/ edit was silent there.
 # Case-insensitive, because on macOS and Windows `Scripts/x.R` is `scripts/x.R`.
-WATCH = re.compile(r"(^|/)scripts/.*\.(R|do|py|jl)$|(^|/)output/|(^|/)scripts/.*/_outputs/",
+# The code roots go beyond the template's own scripts/<lang>/ because a downstream
+# project's passports name ITS layout (R/, code/, Julia/, ...): a WATCH that knew
+# only scripts/ left every claim built by an R/ pipeline silently unflagged.
+WATCH = re.compile(r"(^|/)(scripts|R|code|src|analysis|julia|stata|python)/.*\.(R|do|py|jl)$"
+                   r"|(^|/)(output|outputs|results|figures|tables)/|(^|/)scripts/.*/_outputs/",
                    re.IGNORECASE)
 DISPLAY = re.compile(r"\.(tex|qmd|md|rmd|typ|ipynb)$", re.IGNORECASE)
 THROTTLE_S = 300

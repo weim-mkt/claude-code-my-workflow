@@ -67,6 +67,8 @@ Run `python3 scripts/check-skill-integrity.py --verbose` and fix any P0/P1 befor
 
 The skill is NOT discoverable to a reader until it is listed, and the inventory counts must match what is on disk. `check-surface-sync.sh` runs two surface checks. The **table-row gate** requires the `<!-- surface-sync-table: skills -->` table in `README.md` to have exactly one data row per skill on disk. The **count assertions** require every inventory phrasing that states a skill count (e.g. "N agents, M skills, …") in `README.md`, `CLAUDE.md`, `guide/workflow-guide.qmd`, both rendered guide copies (`guide/workflow-guide.html`, `docs/workflow-guide.html`), `docs/index.html`, `templates/skill-template.md` and `.claude/skills/commit/SKILL.md` to equal the number of skill directories. A new skill fails the gate if it has no row or if the counts are not bumped.
 
+**In a downstream project** (one synced from this template; it carries `.claude/workflow-pin.json`) none of these surfaces exist. The README table, the count assertions, the guide and the Codex/Antigravity bridge are template-only and never synced. Skip steps 1, 2, 3 and 5. List the skill in the project's own `CLAUDE.md` skills list instead (no gate checks it), and in step 6 run `python3 scripts/check-skill-integrity.py` alone.
+
 REMIND the user to:
 
 1. Add a row to the **README.md** skills table: `` | `/<name>` | <what it does> | `` (the gated table).
@@ -75,9 +77,9 @@ REMIND the user to:
 4. Optionally add the skill to CLAUDE.md's "Skills Quick Reference" bullet list — only if it belongs among the most-used skills; no gate checks that list.
 5. Decide whether Codex and Antigravity should get it. If one agent can run it end to end (no fan-out to independent reviewers, nothing specific to Claude Code's own sessions), add its name to `INCLUDE` in `scripts/sync-agent-skills.py` and run `python3 scripts/sync-agent-skills.py`; otherwise add it to `EXCLUDE` with the reason. Left in neither list, it stays Claude-only and `check-skill-integrity.py` prints a P2 reminder.
 6. Run `./scripts/check-surface-sync.sh` and `python3 scripts/check-skill-integrity.py` — both must exit 0.
-6. Check what the skill costs and whether it fires: `/skill-doctor` shows its context cost and usage; `./scripts/run-skill-eval.sh` runs its eval cases once they exist.
+7. Check what the skill costs and whether it fires: `/skill-doctor` shows its context cost and usage; `./scripts/run-skill-eval.sh` runs its eval cases once they exist.
 
-Print the ready-to-paste README row so the user can drop it in.
+Print the ready-to-paste README row (in a downstream project, the `CLAUDE.md` line) so the user can drop it in.
 
 ## Output / report format
 
@@ -87,7 +89,7 @@ Print the ready-to-paste README row so the user can drop it in.
 
 ## Exit behavior
 
-- **Skill written, gates green:** exit 0 with the path, the README row, and the explicit "now add that row, bump the counts, and run the two checks" reminder.
+- **Skill written, gates green:** exit 0 with the path, the README row, and the explicit "now add that row, bump the counts, and run the two checks" reminder (in a downstream project: the `CLAUDE.md` line and the integrity check only).
 - **Name collision or non-kebab-case:** stop in Phase 0 with the conflict named; write nothing.
 - **`check-skill-integrity.py` reports P0/P1:** fix in-place and re-run before returning; never hand back a skill that fails its own gate.
 - **`--dry-run`:** print the draft, write nothing, exit 0.
